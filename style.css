@@ -147,7 +147,7 @@ body {
     left: 2rem;
 }
 #calc-activation-btn {
-    right: 2rem;
+    left: 7rem; /* Position next to the add button */
     background-color: #f59e0b; /* amber-500 */
 }
 #calc-activation-btn:hover {
