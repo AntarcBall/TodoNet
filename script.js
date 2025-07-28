@@ -87,8 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const endColor = styles.getPropertyValue('--arrow-gradient-end-color').trim();
                 
                 gradient.innerHTML = `
-                    <stop offset="0%" style="stop-color:${startColor};stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:${endColor};stop-opacity:1" />
+                    <stop offset="0%" style="stop-color:${startColor}" />
+                    <stop offset="30%" style="stop-color:${startColor}" />
+                    <stop offset="70%" style="stop-color:${endColor}" />
+                    <stop offset="100%" style="stop-color:${endColor}" />
                 `;
                 gradientDefs.appendChild(gradient);
 
