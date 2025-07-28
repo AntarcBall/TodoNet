@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const svgLayer = document.getElementById('arrow-svg-layer');
     const gradientDefs = document.getElementById('gradient-defs');
     const tempArrow = document.getElementById('temp-arrow');
+    const gridBackground = document.getElementById('grid-background');
     const snackbar = document.getElementById('snackbar');
 
     // State
@@ -29,21 +30,17 @@ document.addEventListener('DOMContentLoaded', () => {
         nodeContainer.innerHTML = '';
         nodes.forEach(node => {
             const nodeEl = document.createElement('div');
-            nodeEl.className = 'node p-4 rounded-lg shadow-md cursor-pointer bg-white dark:bg-gray-800';
+            nodeEl.className = 'node';
             nodeEl.style.left = `${node.x}px`;
             nodeEl.style.top = `${node.y}px`;
             nodeEl.dataset.id = node.id;
             if (node.id === selectedNodeId) nodeEl.classList.add('selected');
             
             nodeEl.innerHTML = `
-                <h3 class="font-bold text-lg whitespace-nowrap">${node.name}</h3>
-                <div class="text-center text-3xl font-bold mt-2 text-gray-700 dark:text-gray-300">${node.commit}</div>
+                <h3>${node.name}</h3>
+                <div class="commit-value">${node.commit}</div>
+                <div class="activation-value">${node.activation.toFixed(2)}</div>
             `;
-
-            const activationEl = document.createElement('div');
-            activationEl.className = 'mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-center font-semibold text-yellow-500';
-            activationEl.textContent = node.activation.toFixed(2);
-            nodeEl.appendChild(activationEl);
             
             nodeEl.addEventListener('click', e => { e.stopPropagation(); handleNodeSelection(node.id); });
             nodeEl.addEventListener('mousedown', e => handleNodeMouseDown(e, node.id));
@@ -79,10 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const gradientId = `grad-${sourceNode.id}-to-${targetNode.id}`;
                 const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
                 gradient.setAttribute('id', gradientId);
-                gradient.setAttribute('x1', sourceX);
-                gradient.setAttribute('y1', sourceY);
-                gradient.setAttribute('x2', targetX);
-                gradient.setAttribute('y2', targetY);
+                gradient.setAttribute('x1', String(sourceX));
+                gradient.setAttribute('y1', String(sourceY));
+                gradient.setAttribute('x2', String(targetX));
+                gradient.setAttribute('y2', String(targetY));
                 gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
 
                 const styles = getComputedStyle(document.documentElement);
@@ -136,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const transform = `translate(${boardState.panX}px, ${boardState.panY}px)`;
         nodeContainer.style.transform = transform;
         svgLayer.style.transform = transform;
+        gridBackground.style.backgroundPosition = `${boardState.panX}px ${boardState.panY}px`;
     }
 
     function showSnackbar(message) {
@@ -178,10 +176,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const sourceRect = sourceEl.getBoundingClientRect();
         const startX = sourceRect.left - containerRect.left + sourceRect.width / 2;
         const startY = sourceRect.top - containerRect.top + sourceRect.height / 2;
-        tempArrow.setAttribute('x1', startX);
-        tempArrow.setAttribute('y1', startY);
-        tempArrow.setAttribute('x2', startX);
-        tempArrow.setAttribute('y2', startY);
+        tempArrow.setAttribute('x1', String(startX));
+        tempArrow.setAttribute('y1', String(startY));
+        tempArrow.setAttribute('x2', String(startX));
+        tempArrow.setAttribute('y2', String(startY));
         tempArrow.style.display = 'block';
     }
 
@@ -197,8 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function calculateAndPropagateActivation() {
         const ic = 3;
         const alpha = 0.2;
-        addNodeBtn.disabled = true;
-        calcActivationBtn.disabled = true;
+        addNodeBtn.classList.add('disabled');
+        calcActivationBtn.classList.add('disabled');
         showSnackbar('Activation 계산 중...');
         nodes.forEach(node => { node.activation = 0; });
 
@@ -218,8 +216,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     node.activation += increments[node.id];
                 });
             }
-            addNodeBtn.disabled = false;
-            calcActivationBtn.disabled = false;
+            addNodeBtn.classList.remove('disabled');
+            calcActivationBtn.classList.remove('disabled');
             renderNodes();
             showSnackbar('Activation 계산 완료!');
         }, 100);
@@ -268,8 +266,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const containerRect = nodeContainer.getBoundingClientRect();
             const endX = e.clientX - containerRect.left;
             const endY = e.clientY - containerRect.top;
-            tempArrow.setAttribute('x2', endX);
-            tempArrow.setAttribute('y2', endY);
+            tempArrow.setAttribute('x2', String(endX));
+            tempArrow.setAttribute('y2', String(endY));
         } else if (dragState.isDraggingNode) {
             const node = nodes.find(n => n.id === dragState.draggedNodeId);
             if (node) {

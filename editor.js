@@ -60,6 +60,7 @@ export function renderEditorPanel(currentNodes, currentSelectedNodeId) {
     const node = nodes.find(n => n.id === selectedNodeId);
     
     if (node) {
+        editorPanel.classList.add('show');
         linksTableBody.innerHTML = '';
         document.getElementById('node-id-input').value = node.id;
         document.getElementById('node-name-input').value = node.name;
@@ -71,13 +72,12 @@ export function renderEditorPanel(currentNodes, currentSelectedNodeId) {
 
             const weight = node.links[targetNodeId];
             const row = document.createElement('tr');
-            row.className = "border-b border-gray-200 dark:border-gray-700";
             row.innerHTML = `
-                <td class="p-2 truncate" title="${targetNode.name}">${targetNode.name}</td>
-                <td class="p-2 w-24">
-                    <div class="flex items-center justify-center space-x-2">
-                        <span class="font-mono w-4 text-center">${weight}</span>
-                        <div class="flex flex-col">
+                <td title="${targetNode.name}">${targetNode.name}</td>
+                <td>
+                    <div class="link-weight-controls">
+                        <span class="weight-value">${weight}</span>
+                        <div class="weight-buttons">
                             <button class="link-weight-btn" data-target-id="${targetNodeId}" data-direction="up">
                                 <svg class="pointer-events-none" width="12" height="12" viewBox="0 0 24 24"><path d="M12 4l-8 8h16z" fill="currentColor"/></svg>
                             </button>
@@ -87,16 +87,16 @@ export function renderEditorPanel(currentNodes, currentSelectedNodeId) {
                         </div>
                     </div>
                 </td>
-                <td class="p-2 w-10 text-center">
-                    <button class="link-delete-btn text-gray-400 hover:text-red-500" data-target-id="${targetNodeId}">
+                <td style="text-align: center;">
+                    <button class="link-delete-btn" data-target-id="${targetNodeId}">
                         <svg class="pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </td>
             `;
             linksTableBody.appendChild(row);
         }
-        editorPanel.classList.remove('translate-x-full');
     } else {
-        editorPanel.classList.add('translate-x-full');
+        editorPanel.classList.remove('show');
     }
 }
+
