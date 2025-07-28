@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로젝트: 목표 달성 지원 앱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+        }
+        #board {
+            cursor: grab;
+        }
+        #board.grabbing {
+            cursor: grabbing;
+        }
+        .node {
+            transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
+            width: max-content;
+            border: 3px solid transparent;
+            position: absolute;
+        }
+        .node:hover {
+            border-color: #facc15; /* yellow-400 */
+        }
+        .node.selected {
+            border-color: transparent;
+            box-shadow: 0 0 0 3px #3b82f6, 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            transform: scale(1.05);
+        }
+        #arrow-svg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        #node-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #snackbar {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 100;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+        #snackbar.show {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+
+    <div id="app" class="w-screen h-screen relative">
+        <svg id="arrow-svg-layer">
+            <!-- 그라데이션 정의를 담을 defs -->
+            <defs id="gradient-defs"></defs>
+            <!-- 임시 연결선 -->
+            <line id="temp-arrow" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5,5" style="display: none;"></line>
+        </svg>
+
+        <div id="board" class="w-full h-full absolute top-0 left-0">
+            <div id="node-container" class="absolute top-0 left-0"></div>
+        </div>
+
+        <!-- 노드 추가 버튼 -->
+        <button id="add-node-btn" class="fixed bottom-8 left-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg z-20 flex items-center justify-center transition-transform hover:scale-110" title="새 노드 추가">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        </button>
+
+        <!-- Activation 계산 버튼 -->
+        <button id="calc-activation-btn" class="fixed bottom-8 right-8 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full p-4 shadow-lg z-20 flex items-center justify-center transition-transform hover:scale-110" title="Activation 계산">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        </button>
+
+        <div id="editor-panel" class="fixed top-0 right-0 h-full w-[25%] max-w-sm bg-white dark:bg-gray-800 shadow-2xl p-6 z-30 transform translate-x-full overflow-y-auto">
+             <div class="flex justify-between items-center mb-6">
+                 <h2 class="text-2xl font-bold">노드 편집</h2>
+                 <button id="close-panel-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                 </button>
+             </div>
+             <form id="node-editor-form">
+                 <input type="hidden" id="node-id-input">
+                 <div class="space-y-6">
+                     <div>
+                         <label for="node-name-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                         <input type="text" id="node-name-input" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
+                     </div>
+                     <div>
+                         <label for="node-commit-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Commit</label>
+                         <input type="number" id="node-commit-input" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
+                     </div>
+                     <div>
+                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Links</label>
+                         <div class="border border-gray-200 dark:border-gray-600 rounded-md mt-2 max-h-60 overflow-y-auto">
+                             <table class="w-full text-sm text-left">
+                                 <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0">
+                                     <tr>
+                                         <th class="p-2 font-semibold">End</th>
+                                         <th class="p-2 font-semibold text-center w-24">Weight</th>
+                                         <th class="p-2 w-10"></th>
+                                     </tr>
+                                 </thead>
+                                 <tbody id="links-table-body"></tbody>
+                             </table>
+                         </div>
+                     </div>
+                 </div>
+                 <div class="mt-8">
+                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-sm">저장</button>
+                 </div>
+             </form>
+        </div>
+
+        <div id="snackbar"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const board = document.getElementById('board');
+            const nodeContainer = document.getElementById('node-container');
+            const addNodeBtn = document.getElementById('add-node-btn');
+            const calcActivationBtn = document.getElementById('calc-activation-btn');
+            const editorPanel = document.getElementById('editor-panel');
+            const closePanelBtn = document.getElementById('close-panel-btn');
+            const editorForm = document.getElementById('node-editor-form');
+            const svgLayer = document.getElementById('arrow-svg-layer');
+            const gradientDefs = document.getElementById('gradient-defs');
+            const tempArrow = document.getElementById('temp-arrow');
+            const snackbar = document.getElementById('snackbar');
+            const linksTableBody = document.getElementById('links-table-body');
+
+            // State
+            let nodes = [];
+            let selectedNodeId = null;
+            const boardState = { panX: 0, panY: 0, isPanning: false, lastMouseX: 0, lastMouseY: 0 };
+            const dragState = { isDraggingNode: false, draggedNodeId: null, offsetX: 0, offsetY: 0 };
+            const linkState = { isLinking: false, sourceNodeId: null };
+
+            // --- RENDER FUNCTIONS ---
+            function renderAll() {
+                renderNodes();
+                renderArrows();
+            }
+
+            function renderNodes() {
+                nodeContainer.innerHTML = '';
+                nodes.forEach(node => {
+                    const nodeEl = document.createElement('div');
+                    nodeEl.className = 'node p-4 rounded-lg shadow-md cursor-pointer bg-white dark:bg-gray-800';
+                    nodeEl.style.left = `${node.x}px`;
+                    nodeEl.style.top = `${node.y}px`;
+                    nodeEl.dataset.id = node.id;
+                    if (node.id === selectedNodeId) nodeEl.classList.add('selected');
+                    
+                    // Node base structure
+                    nodeEl.innerHTML = `
+                        <h3 class="font-bold text-lg whitespace-nowrap">${node.name}</h3>
+                        <div class="text-center text-3xl font-bold mt-2 text-gray-700 dark:text-gray-300">${node.commit}</div>
+                    `;
+
+                    // Add activation display
+                    const activationEl = document.createElement('div');
+                    activationEl.className = 'mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-center font-semibold text-yellow-500';
+                    activationEl.textContent = node.activation.toFixed(2);
+                    nodeEl.appendChild(activationEl);
+                    
+                    // Event listeners
+                    nodeEl.addEventListener('click', e => { e.stopPropagation(); handleNodeSelection(node.id); });
+                    nodeEl.addEventListener('mousedown', e => handleNodeMouseDown(e, node.id));
+                    nodeEl.addEventListener('contextmenu', e => handleNodeContextMenu(e, node.id));
+                    nodeContainer.appendChild(nodeEl);
+                });
+            }
+
+            function renderArrows() {
+                Array.from(svgLayer.querySelectorAll('.arrow-path')).forEach(path => path.remove());
+                gradientDefs.innerHTML = '';
+                const containerRect = nodeContainer.getBoundingClientRect();
+
+                nodes.forEach(sourceNode => {
+                    const sourceEl = nodeContainer.querySelector(`[data-id="${sourceNode.id}"]`);
+                    if (!sourceEl) return;
+
+                    const sourceRect = sourceEl.getBoundingClientRect();
+                    const sourceX = sourceRect.left - containerRect.left + sourceRect.width / 2;
+                    const sourceY = sourceRect.top - containerRect.top + sourceRect.height / 2;
+
+                    for (const targetNodeId in sourceNode.links) {
+                        const targetNode = nodes.find(n => n.id === targetNodeId);
+                        if (!targetNode) continue;
+
+                        const targetEl = nodeContainer.querySelector(`[data-id="${targetNodeId}"]`);
+                        if (!targetEl) continue;
+
+                        const targetRect = targetEl.getBoundingClientRect();
+                        const targetX = targetRect.left - containerRect.left + targetRect.width / 2;
+                        const targetY = targetRect.top - containerRect.top + targetRect.height / 2;
+                        
+                        const gradientId = `grad-${sourceNode.id}-to-${targetNode.id}`;
+                        const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+                        gradient.setAttribute('id', gradientId);
+                        gradient.setAttribute('x1', sourceX);
+                        gradient.setAttribute('y1', sourceY);
+                        gradient.setAttribute('x2', targetX);
+                        gradient.setAttribute('y2', targetY);
+                        gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+                        
+                        gradient.innerHTML = `
+                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#9ca3af;stop-opacity:1" />
+                        `;
+                        gradientDefs.appendChild(gradient);
+
+                        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        arrow.setAttribute('class', 'arrow-path');
+                        
+                        const isBidirectional = targetNode.links[sourceNode.id];
+                        
+                        let pathData;
+                        if (isBidirectional && sourceNode.id < targetNode.id) { // Draw curve only once for bidirectional pairs
+                            const dx = targetX - sourceX;
+                            const dy = targetY - sourceY;
+                            const norm = Math.sqrt(dx * dx + dy * dy);
+                            const nx = -dy / norm;
+                            const ny = dx / norm;
+                            const curveOffset = 20;
+                            
+                            const controlX = sourceX + dx / 2 + curveOffset * nx;
+                            const controlY = sourceY + dy / 2 + curveOffset * ny;
+                            
+                            pathData = `M ${sourceX} ${sourceY} Q ${controlX} ${controlY} ${targetX} ${targetY}`;
+                        } else if (!isBidirectional) {
+                            pathData = `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`;
+                        }
+
+                        if(pathData) {
+                            arrow.setAttribute('d', pathData);
+                            arrow.setAttribute('stroke', `url(#${gradientId})`);
+                            arrow.setAttribute('stroke-width', '4');
+                            arrow.setAttribute('fill', 'none');
+                            svgLayer.insertBefore(arrow, tempArrow);
+                        }
+                    }
+                });
+            }
+
+            function renderEditorPanel() {
+                const node = nodes.find(n => n.id === selectedNodeId);
+                linksTableBody.innerHTML = '';
+
+                if (node) {
+                    document.getElementById('node-id-input').value = node.id;
+                    document.getElementById('node-name-input').value = node.name;
+                    document.getElementById('node-commit-input').value = node.commit;
+                    
+                    for (const targetNodeId in node.links) {
+                        const targetNode = nodes.find(n => n.id === targetNodeId);
+                        if (!targetNode) continue;
+
+                        const weight = node.links[targetNodeId];
+                        const row = document.createElement('tr');
+                        row.className = "border-b border-gray-200 dark:border-gray-700";
+                        row.innerHTML = `
+                            <td class="p-2 truncate" title="${targetNode.name}">${targetNode.name}</td>
+                            <td class="p-2 w-24">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <span class="font-mono w-4 text-center">${weight}</span>
+                                    <div class="flex flex-col">
+                                        <button class="link-weight-btn" data-target-id="${targetNodeId}" data-direction="up">
+                                            <svg class="pointer-events-none" width="12" height="12" viewBox="0 0 24 24"><path d="M12 4l-8 8h16z" fill="currentColor"/></svg>
+                                        </button>
+                                        <button class="link-weight-btn" data-target-id="${targetNodeId}" data-direction="down">
+                                            <svg class="pointer-events-none" width="12" height="12" viewBox="0 0 24 24"><path d="M12 20l8-8H4z" fill="currentColor"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-2 w-10 text-center">
+                                <button class="link-delete-btn text-gray-400 hover:text-red-500" data-target-id="${targetNodeId}">
+                                    <svg class="pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
+                            </td>
+                        `;
+                        linksTableBody.appendChild(row);
+                    }
+                    editorPanel.classList.remove('translate-x-full');
+                } else {
+                    editorPanel.classList.add('translate-x-full');
+                }
+            }
+            
+            function updateNodeContainerTransform() {
+                const transform = `translate(${boardState.panX}px, ${boardState.panY}px)`;
+                nodeContainer.style.transform = transform;
+                svgLayer.style.transform = transform;
+            }
+
+            function showSnackbar(message) {
+                snackbar.textContent = message;
+                snackbar.classList.add('show');
+                setTimeout(() => snackbar.classList.remove('show'), 3000);
+            }
+
+            // --- EVENT HANDLERS & LOGIC ---
+
+            function handleNodeSelection(nodeId) {
+                selectedNodeId = nodeId;
+                renderNodes();
+                renderEditorPanel();
+            }
+
+            function deselectAll() {
+                selectedNodeId = null;
+                renderNodes();
+                renderEditorPanel();
+            }
+
+            function handleNodeMouseDown(e, nodeId) {
+                e.stopPropagation();
+                if (e.button === 0) {
+                    dragState.isDraggingNode = true;
+                    dragState.draggedNodeId = nodeId;
+                    const node = nodes.find(n => n.id === nodeId);
+                    dragState.offsetX = e.clientX - node.x - boardState.panX;
+                    dragState.offsetY = e.clientY - node.y - boardState.panY;
+                    board.classList.remove('grabbing');
+                }
+            }
+
+            function handleNodeContextMenu(e, nodeId) {
+                e.preventDefault();
+                e.stopPropagation();
+                linkState.isLinking = true;
+                linkState.sourceNodeId = nodeId;
+                const sourceEl = nodeContainer.querySelector(`[data-id="${nodeId}"]`);
+                const containerRect = nodeContainer.getBoundingClientRect();
+                const sourceRect = sourceEl.getBoundingClientRect();
+                const startX = sourceRect.left - containerRect.left + sourceRect.width / 2;
+                const startY = sourceRect.top - containerRect.top + sourceRect.height / 2;
+                tempArrow.setAttribute('x1', startX);
+                tempArrow.setAttribute('y1', startY);
+                tempArrow.setAttribute('x2', startX);
+                tempArrow.setAttribute('y2', startY);
+                tempArrow.style.display = 'block';
+            }
+
+            linksTableBody.addEventListener('click', e => {
+                const sourceNode = nodes.find(n => n.id === selectedNodeId);
+                if (!sourceNode) return;
+
+                const weightBtn = e.target.closest('.link-weight-btn');
+                const deleteBtn = e.target.closest('.link-delete-btn');
+
+                if (weightBtn) {
+                    const targetId = weightBtn.dataset.targetId;
+                    const direction = weightBtn.dataset.direction;
+                    const currentWeight = sourceNode.links[targetId];
+                    let newWeight = direction === 'up' ? (currentWeight % 3) + 1 : ((currentWeight - 2 + 3) % 3) + 1;
+                    sourceNode.links[targetId] = newWeight;
+                    renderEditorPanel();
+                }
+
+                if (deleteBtn) {
+                    const targetId = deleteBtn.dataset.targetId;
+                    delete sourceNode.links[targetId];
+                    renderAll();
+                    renderEditorPanel();
+                }
+            });
+
+            addNodeBtn.addEventListener('click', () => {
+                const newId = `node_${Date.now()}`;
+                const boardRect = board.getBoundingClientRect();
+                const x = (boardRect.width / 2) - boardState.panX - 75;
+                const y = (boardRect.height / 2) - boardState.panY - 50;
+                nodes.push({ id: newId, name: '새로운 목표', commit: 0, x, y, links: {}, activation: 0 });
+                renderNodes();
+                handleNodeSelection(newId);
+            });
+
+            // --- ACTIVATION CALCULATION ---
+            function calculateAndPropagateActivation() {
+                const ic = 3; // iter-const
+                const alpha = 0.2; // propagation constant
+
+                // 1. Pause other operations
+                addNodeBtn.disabled = true;
+                calcActivationBtn.disabled = true;
+                addNodeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                calcActivationBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                showSnackbar('Activation 계산 중...');
+
+                // Reset activations for a fresh calculation each time
+                nodes.forEach(node => { node.activation = 0; });
+
+                // Use a timeout to allow UI to update before blocking calculation
+                setTimeout(() => {
+                    // 2. Run iteration
+                    for (let i = 0; i < ic; i++) {
+                        const increments = nodes.reduce((acc, node) => ({ ...acc, [node.id]: 0 }), {});
+
+                        // Calculate all increments based on the state at the start of the iteration
+                        nodes.forEach(sourceNode => {
+                            for (const targetNodeId in sourceNode.links) {
+                                if (nodes.some(n => n.id === targetNodeId)) {
+                                    const weight = sourceNode.links[targetNodeId];
+                                    // Formula: increase = (weight * commit) + (current_activation * alpha)
+                                    const increment = (weight * sourceNode.commit) + (sourceNode.activation * alpha);
+                                    increments[targetNodeId] += increment;
+                                }
+                            }
+                        });
+
+                        // Apply increments to all nodes simultaneously
+                        nodes.forEach(node => {
+                            node.activation += increments[node.id];
+                        });
+                    }
+
+                    // 3. Restart operations
+                    addNodeBtn.disabled = false;
+                    calcActivationBtn.disabled = false;
+                    addNodeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    calcActivationBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                    // 4. Update UI and notify completion
+                    renderNodes();
+                    showSnackbar('Activation 계산 완료!');
+                }, 100);
+            }
+
+            calcActivationBtn.addEventListener('click', calculateAndPropagateActivation);
+
+
+            closePanelBtn.addEventListener('click', deselectAll);
+            board.addEventListener('click', e => { if (e.target === board) deselectAll(); });
+
+            editorForm.addEventListener('submit', e => {
+                e.preventDefault();
+                const id = document.getElementById('node-id-input').value;
+                const node = nodes.find(n => n.id === id);
+                if (node) {
+                    node.name = document.getElementById('node-name-input').value;
+                    node.commit = parseInt(document.getElementById('node-commit-input').value, 10) || 0;
+                    renderAll();
+                    renderEditorPanel();
+                }
+            });
+
+            board.addEventListener('mousedown', e => {
+                if ((e.target === board || e.target === nodeContainer) && e.button === 0) {
+                    board.classList.add('grabbing');
+                    boardState.isPanning = true;
+                    boardState.lastMouseX = e.clientX;
+                    boardState.lastMouseY = e.clientY;
+                }
+            });
+            
+            window.addEventListener('mouseup', (e) => {
+                if (linkState.isLinking) {
+                    const targetEl = e.target.closest('.node');
+                    if (targetEl) {
+                        const targetNodeId = targetEl.dataset.id;
+                        const sourceNode = nodes.find(n => n.id === linkState.sourceNodeId);
+                        
+                        if (sourceNode && targetNodeId !== linkState.sourceNodeId) {
+                            if (sourceNode.links[targetNodeId]) {
+                                showSnackbar("이미 존재하는 연결입니다.");
+                            } else {
+                                sourceNode.links[targetNodeId] = 1;
+                                renderAll();
+                                if(selectedNodeId === sourceNode.id) {
+                                    renderEditorPanel();
+                                }
+                            }
+                        }
+                    }
+                }
+                board.classList.remove('grabbing');
+                boardState.isPanning = false;
+                dragState.isDraggingNode = false;
+                dragState.draggedNodeId = null;
+                linkState.isLinking = false;
+                linkState.sourceNodeId = null;
+                tempArrow.style.display = 'none';
+            });
+
+            window.addEventListener('mousemove', e => {
+                if (linkState.isLinking) {
+                    const containerRect = nodeContainer.getBoundingClientRect();
+                    const endX = e.clientX - containerRect.left;
+                    const endY = e.clientY - containerRect.top;
+                    tempArrow.setAttribute('x2', endX);
+                    tempArrow.setAttribute('y2', endY);
+                } else if (dragState.isDraggingNode) {
+                    const node = nodes.find(n => n.id === dragState.draggedNodeId);
+                    if (node) {
+                        node.x = e.clientX - boardState.panX - dragState.offsetX;
+                        node.y = e.clientY - boardState.panY - dragState.offsetY;
+                        renderAll();
+                    }
+                } else if (boardState.isPanning) {
+                    const dx = e.clientX - boardState.lastMouseX;
+                    const dy = e.clientY - boardState.lastMouseY;
+                    boardState.panX += dx;
+                    boardState.panY += dy;
+                    boardState.lastMouseX = e.clientX;
+                    boardState.lastMouseY = e.clientY;
+                    updateNodeContainerTransform();
+                }
+            });
+
+            function initialize() {
+                nodes = [
+                    { id: 'app_dev', name: 'App Develop', commit: 50, x: 150, y: 200, links: { 'ai_theory': 1 }, activation: 0 },
+                    { id: 'ai_theory', name: 'AI Theory', commit: 30, x: 450, y: 150, links: { 'app_dev': 2 }, activation: 0 },
+                    { id: 'exercise', name: '운동하기', commit: 80, x: 300, y: 400, links: { 'app_dev': 1 }, activation: 0 }
+                ];
+                
+                const boardRect = board.getBoundingClientRect();
+                boardState.panX = boardRect.width / 2 - 300;
+                boardState.panY = boardRect.height / 2 - 250;
+
+                updateNodeContainerTransform();
+                renderAll();
+            }
+
+            initialize();
+        });
+    </script>
+</body>
+</html>
