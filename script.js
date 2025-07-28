@@ -1,5 +1,6 @@
 import { initEditor, renderEditorPanel } from './editor.js';
 import { saveNodes, loadNodes } from './storage.js';
+import { config } from './config.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
@@ -111,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (norm > 0) {
                         const nx = -dy / norm;
                         const ny = dx / norm;
-                        const offset = 5;
+                        const offset = config.links.parallelOffset;
                         
                         startX_offset += offset * nx;
                         startY_offset += offset * ny;
@@ -121,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const weight = sourceNode.links[targetNodeId];
-                const strokeWidth = 2 * weight;
+                const strokeWidth = config.links.baseWidth * weight;
 
                 const pathData = `M ${startX_offset} ${startY_offset} L ${endX_offset} ${endY_offset}`;
                 
@@ -208,8 +209,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function calculateAndPropagateActivation() {
-        const ic = 3;
-        const alpha = 0.2;
+        const ic = config.activation.iterations;
+        const alpha = config.activation.propagationRate;
         addNodeBtn.classList.add('disabled');
         calcActivationBtn.classList.add('disabled');
         showSnackbar('Activation 계산 중...');
@@ -222,13 +223,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     for (const targetNodeId in sourceNode.links) {
                         if (nodes.some(n => n.id === targetNodeId)) {
                             const weight = sourceNode.links[targetNodeId];
-                            const increment = (weight * sourceNode.commit) + (sourceNode.activation * alpha);
+                            const increment = (weight * (sourceNode.commit+sourceNode.activation*alpha))/ic;
                             increments[targetNodeId] += increment;
                         }
                     }
+
                 });
                 nodes.forEach(node => {
                     node.activation += increments[node.id];
+                    node.activation += node.commit/ic;
                 });
             }
             addNodeBtn.classList.remove('disabled');
@@ -310,26 +313,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Prevent the default browser context menu from appearing
-    window.addEventListener('contextmenu', e => {
-        e.preventDefault();
-    });
-
     board.addEventListener('wheel', e => {
         e.preventDefault();
-        const zoomSpeed = 0.1;
+        const zoomSpeed = config.zoom.speed;
         const oldZoom = boardState.zoom;
         
         const mouseX = e.clientX - board.getBoundingClientRect().left;
         const mouseY = e.clientY - board.getBoundingClientRect().top;
 
         const newZoom = oldZoom - e.deltaY * (zoomSpeed / 100);
-        boardState.zoom = Math.max(0.2, Math.min(2, newZoom));
+        boardState.zoom = Math.max(config.zoom.min, Math.min(config.zoom.max, newZoom));
 
         boardState.panX = mouseX - (mouseX - boardState.panX) * (boardState.zoom / oldZoom);
         boardState.panY = mouseY - (mouseY - boardState.panY) * (boardState.zoom / oldZoom);
 
         updateNodeContainerTransform();
+    });
+
+    // Prevent the default browser context menu from appearing
+    window.addEventListener('contextmenu', e => {
+        e.preventDefault();
     });
 
     function initialize() {
@@ -358,9 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             onDelete: (id) => {
                 if (confirm('Are you sure you want to delete this node?')) {
-                    // Remove the node itself
                     nodes = nodes.filter(n => n.id !== id);
-                    // Remove any links pointing to the deleted node
                     nodes.forEach(n => {
                         if (n.links[id]) {
                             delete n.links[id];
