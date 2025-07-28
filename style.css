@@ -85,10 +85,13 @@ body {
     border-radius: 0.5rem;
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
     cursor: pointer;
-    background-color: var(--panel-bg-color);
     border: 3px solid transparent;
     transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
     z-index: 2;
+    
+    /* Dynamic background gradient */
+    --node-end-color: #000; /* Default to black */
+    background: linear-gradient(to bottom, #000 0%, #000 50%, var(--node-end-color) 100%);
 }
 .node:hover {
     border-color: #facc15; /* yellow-400 */

@@ -20,5 +20,11 @@ export const config = {
     links: {
         baseWidth: 2,       // Base width in pixels for a link with weight 1
         parallelOffset: 5   // Offset in pixels for bidirectional links
+    },
+
+    // Visual and Theming Parameters
+    visuals: {
+        maxActivation: 1000,    // The activation value that corresponds to the full highlight color
+        highlightRgb: '255, 0, 0' // The RGB value for the highlight color
     }
 };

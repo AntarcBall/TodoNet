@@ -40,6 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
             nodeEl.dataset.id = node.id;
             if (node.id === selectedNodeId) nodeEl.classList.add('selected');
             
+            // Calculate and set the dynamic background gradient
+            const activationRatio = Math.min(node.activation / config.visuals.maxActivation, 1);
+            const endColor = `rgba(${config.visuals.highlightRgb}, ${activationRatio})`;
+            nodeEl.style.setProperty('--node-end-color', endColor);
+
             nodeEl.innerHTML = `
                 <h3>${node.name}</h3>
                 <div class="commit-value">${node.commit}</div>
