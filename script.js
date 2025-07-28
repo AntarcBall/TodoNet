@@ -15,19 +15,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // State
     let nodes = [];
     let selectedNodeId = null;
-    const boardState = { panX: 0, panY: 0, isPanning: false, lastMouseX: 0, lastMouseY: 0 };
+    const boardState = { panX: 0, panY: 0, zoom: 1, isPanning: false, lastMouseX: 0, lastMouseY: 0 };
     const dragState = { isDraggingNode: false, draggedNodeId: null, offsetX: 0, offsetY: 0 };
     const linkState = { isLinking: false, sourceNodeId: null };
 
     // --- RENDER FUNCTIONS ---
     function renderAll() {
-        renderNodes();
-        renderArrows();
-        renderEditorPanel(nodes, selectedNodeId);
+        // Use requestAnimationFrame to batch DOM updates for smoother rendering
+        requestAnimationFrame(() => {
+            renderNodes();
+            renderArrows();
+            renderEditorPanel(nodes, selectedNodeId);
+        });
     }
 
     function renderNodes() {
-        nodeContainer.innerHTML = '';
+        // Clear only nodes, not the whole container which now holds the SVG layer
+        Array.from(nodeContainer.querySelectorAll('.node')).forEach(el => el.remove());
+
         nodes.forEach(node => {
             const nodeEl = document.createElement('div');
             nodeEl.className = 'node';
@@ -52,15 +57,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderArrows() {
         Array.from(svgLayer.querySelectorAll('.arrow-path')).forEach(path => path.remove());
         gradientDefs.innerHTML = '';
-        const containerRect = nodeContainer.getBoundingClientRect();
 
         nodes.forEach(sourceNode => {
             const sourceEl = nodeContainer.querySelector(`[data-id="${sourceNode.id}"]`);
             if (!sourceEl) return;
 
-            const sourceRect = sourceEl.getBoundingClientRect();
-            const sourceX = sourceRect.left - containerRect.left + sourceRect.width / 2;
-            const sourceY = sourceRect.top - containerRect.top + sourceRect.height / 2;
+            const sourceX = sourceNode.x + sourceEl.offsetWidth / 2;
+            const sourceY = sourceNode.y + sourceEl.offsetHeight / 2;
 
             for (const targetNodeId in sourceNode.links) {
                 const targetNode = nodes.find(n => n.id === targetNodeId);
@@ -69,9 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const targetEl = nodeContainer.querySelector(`[data-id="${targetNodeId}"]`);
                 if (!targetEl) continue;
 
-                const targetRect = targetEl.getBoundingClientRect();
-                const targetX = targetRect.left - containerRect.left + targetRect.width / 2;
-                const targetY = targetRect.top - containerRect.top + targetRect.height / 2;
+                const targetX = targetNode.x + targetEl.offsetWidth / 2;
+                const targetY = targetNode.y + targetEl.offsetHeight / 2;
                 
                 const gradientId = `grad-${sourceNode.id}-to-${targetNode.id}`;
                 const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
@@ -126,15 +128,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 arrow.setAttribute('stroke', `url(#${gradientId})`);
                 arrow.setAttribute('stroke-width', '4');
                 arrow.setAttribute('fill', 'none');
-                svgLayer.insertBefore(arrow, tempArrow);
+                svgLayer.appendChild(arrow);
             }
         });
     }
     
     function updateNodeContainerTransform() {
-        const transform = `translate(${boardState.panX}px, ${boardState.panY}px)`;
+        const transform = `translate(${boardState.panX}px, ${boardState.panY}px) scale(${boardState.zoom})`;
         nodeContainer.style.transform = transform;
-        svgLayer.style.transform = transform;
+        
+        const gridSize = 40 * boardState.zoom;
+        gridBackground.style.backgroundSize = `${gridSize}px ${gridSize}px`;
         gridBackground.style.backgroundPosition = `${boardState.panX}px ${boardState.panY}px`;
     }
 
@@ -162,8 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
             dragState.isDraggingNode = true;
             dragState.draggedNodeId = nodeId;
             const node = nodes.find(n => n.id === nodeId);
-            dragState.offsetX = e.clientX - node.x - boardState.panX;
-            dragState.offsetY = e.clientY - node.y - boardState.panY;
+            dragState.offsetX = (e.clientX / boardState.zoom) - node.x;
+            dragState.offsetY = (e.clientY / boardState.zoom) - node.y;
             board.classList.remove('grabbing');
         }
     }
@@ -173,23 +177,25 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         linkState.isLinking = true;
         linkState.sourceNodeId = nodeId;
+        const sourceNode = nodes.find(n => n.id === nodeId);
         const sourceEl = nodeContainer.querySelector(`[data-id="${nodeId}"]`);
-        const containerRect = nodeContainer.getBoundingClientRect();
-        const sourceRect = sourceEl.getBoundingClientRect();
-        const startX = sourceRect.left - containerRect.left + sourceRect.width / 2;
-        const startY = sourceRect.top - containerRect.top + sourceRect.height / 2;
+
+        const startX = sourceNode.x + sourceEl.offsetWidth / 2;
+        const startY = sourceNode.y + sourceEl.offsetHeight / 2;
+
         tempArrow.setAttribute('x1', String(startX));
         tempArrow.setAttribute('y1', String(startY));
         tempArrow.setAttribute('x2', String(startX));
         tempArrow.setAttribute('y2', String(startY));
         tempArrow.style.display = 'block';
+        svgLayer.appendChild(tempArrow);
     }
 
     addNodeBtn.addEventListener('click', () => {
         const newId = `node_${Date.now()}`;
         const boardRect = board.getBoundingClientRect();
-        const x = (boardRect.width / 2) - boardState.panX - 75;
-        const y = (boardRect.height / 2) - boardState.panY - 50;
+        const x = ((boardRect.width / 2) - boardState.panX) / boardState.zoom - 75;
+        const y = ((boardRect.height / 2) - boardState.panY) / boardState.zoom - 50;
         nodes.push({ id: newId, name: '새로운 목표', commit: 0, x, y, links: {}, activation: 0 });
         handleNodeSelection(newId);
     });
@@ -229,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
     board.addEventListener('click', e => { if (e.target === board) deselectAll(); });
 
     board.addEventListener('mousedown', e => {
-        if ((e.target === board || e.target === nodeContainer) && e.button === 0) {
+        if ((e.target === board || e.target.id === 'node-container' || e.target.id === 'arrow-svg-layer') && e.button === 0) {
             board.classList.add('grabbing');
             boardState.isPanning = true;
             boardState.lastMouseX = e.clientX;
@@ -265,16 +271,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('mousemove', e => {
         if (linkState.isLinking) {
-            const containerRect = nodeContainer.getBoundingClientRect();
-            const endX = e.clientX - containerRect.left;
-            const endY = e.clientY - containerRect.top;
+            const boardRect = board.getBoundingClientRect();
+            const mouseX = e.clientX - boardRect.left;
+            const mouseY = e.clientY - boardRect.top;
+            const endX = (mouseX - boardState.panX) / boardState.zoom;
+            const endY = (mouseY - boardState.panY) / boardState.zoom;
+            
             tempArrow.setAttribute('x2', String(endX));
             tempArrow.setAttribute('y2', String(endY));
         } else if (dragState.isDraggingNode) {
             const node = nodes.find(n => n.id === dragState.draggedNodeId);
             if (node) {
-                node.x = e.clientX - boardState.panX - dragState.offsetX;
-                node.y = e.clientY - boardState.panY - dragState.offsetY;
+                node.x += e.movementX / boardState.zoom;
+                node.y += e.movementY / boardState.zoom;
                 renderAll();
             }
         } else if (boardState.isPanning) {
@@ -286,6 +295,23 @@ document.addEventListener('DOMContentLoaded', () => {
             boardState.lastMouseY = e.clientY;
             updateNodeContainerTransform();
         }
+    });
+
+    board.addEventListener('wheel', e => {
+        e.preventDefault();
+        const zoomSpeed = 0.1;
+        const oldZoom = boardState.zoom;
+        
+        const mouseX = e.clientX - board.getBoundingClientRect().left;
+        const mouseY = e.clientY - board.getBoundingClientRect().top;
+
+        const newZoom = oldZoom - e.deltaY * (zoomSpeed / 100);
+        boardState.zoom = Math.max(0.2, Math.min(2, newZoom));
+
+        boardState.panX = mouseX - (mouseX - boardState.panX) * (boardState.zoom / oldZoom);
+        boardState.panY = mouseY - (mouseY - boardState.panY) * (boardState.zoom / oldZoom);
+
+        updateNodeContainerTransform();
     });
 
     function initialize() {

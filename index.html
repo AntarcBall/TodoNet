@@ -11,13 +11,13 @@
 
     <div id="app">
         <div id="grid-background"></div>
-        <svg id="arrow-svg-layer">
-            <defs id="gradient-defs"></defs>
-            <line id="temp-arrow" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5,5" style="display: none;"></line>
-        </svg>
-
         <div id="board">
-            <div id="node-container"></div>
+            <div id="node-container">
+                <svg id="arrow-svg-layer">
+                    <defs id="gradient-defs"></defs>
+                    <line id="temp-arrow" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5,5" style="display: none;"></line>
+                </svg>
+            </div>
         </div>
 
         <button id="add-node-btn" class="control-button" title="새 노드 추가">
