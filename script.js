@@ -373,20 +373,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        const boardSize = 10000; // Create a large canvas
+        nodeContainer.style.width = `${boardSize}px`;
+        nodeContainer.style.height = `${boardSize}px`;
+
         const savedNodes = loadNodes();
         if (savedNodes && savedNodes.length > 0) {
             nodes = savedNodes;
         } else {
+            // Place default nodes in the center of the new large canvas
+            const centerX = boardSize / 2;
+            const centerY = boardSize / 2;
             nodes = [
-                { id: 'app_dev', name: 'App Develop', commit: 50, x: 150, y: 200, links: { 'ai_theory': 1 }, activation: 0 },
-                { id: 'ai_theory', name: 'AI Theory', commit: 30, x: 450, y: 150, links: { 'app_dev': 2 }, activation: 0 },
-                { id: 'exercise', name: '운동하기', commit: 80, x: 300, y: 400, links: { 'app_dev': 1 }, activation: 0 }
+                { id: 'app_dev', name: 'App Develop', commit: 50, x: centerX - 150, y: centerY, links: { 'ai_theory': 1 }, activation: 0 },
+                { id: 'ai_theory', name: 'AI Theory', commit: 30, x: centerX + 150, y: centerY - 50, links: { 'app_dev': 2 }, activation: 0 },
+                { id: 'exercise', name: '운동하기', commit: 80, x: centerX, y: centerY + 200, links: { 'app_dev': 1 }, activation: 0 }
             ];
         }
         
+        // Center the view on the content
         const boardRect = board.getBoundingClientRect();
-        boardState.panX = boardRect.width / 2 - 300;
-        boardState.panY = boardRect.height / 2 - 250;
+        boardState.panX = (boardRect.width / 2) - (boardSize / 2);
+        boardState.panY = (boardRect.height / 2) - (boardSize / 2);
 
         updateNodeContainerTransform();
         renderAll();
