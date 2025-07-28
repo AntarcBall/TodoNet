@@ -1,17 +1,15 @@
+import { initEditor, renderEditorPanel } from './editor.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const board = document.getElementById('board');
     const nodeContainer = document.getElementById('node-container');
     const addNodeBtn = document.getElementById('add-node-btn');
     const calcActivationBtn = document.getElementById('calc-activation-btn');
-    const editorPanel = document.getElementById('editor-panel');
-    const closePanelBtn = document.getElementById('close-panel-btn');
-    const editorForm = document.getElementById('node-editor-form');
     const svgLayer = document.getElementById('arrow-svg-layer');
     const gradientDefs = document.getElementById('gradient-defs');
     const tempArrow = document.getElementById('temp-arrow');
     const snackbar = document.getElementById('snackbar');
-    const linksTableBody = document.getElementById('links-table-body');
 
     // State
     let nodes = [];
@@ -24,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderAll() {
         renderNodes();
         renderArrows();
+        renderEditorPanel(nodes, selectedNodeId);
     }
 
     function renderNodes() {
@@ -36,19 +35,16 @@ document.addEventListener('DOMContentLoaded', () => {
             nodeEl.dataset.id = node.id;
             if (node.id === selectedNodeId) nodeEl.classList.add('selected');
             
-            // Node base structure
             nodeEl.innerHTML = `
                 <h3 class="font-bold text-lg whitespace-nowrap">${node.name}</h3>
                 <div class="text-center text-3xl font-bold mt-2 text-gray-700 dark:text-gray-300">${node.commit}</div>
             `;
 
-            // Add activation display
             const activationEl = document.createElement('div');
             activationEl.className = 'mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-center font-semibold text-yellow-500';
             activationEl.textContent = node.activation.toFixed(2);
             nodeEl.appendChild(activationEl);
             
-            // Event listeners
             nodeEl.addEventListener('click', e => { e.stopPropagation(); handleNodeSelection(node.id); });
             nodeEl.addEventListener('mousedown', e => handleNodeMouseDown(e, node.id));
             nodeEl.addEventListener('contextmenu', e => handleNodeContextMenu(e, node.id));
@@ -104,10 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const isBidirectional = targetNode.links[sourceNode.id];
                 
-                let startX = sourceX;
-                let startY = sourceY;
-                let endX = targetX;
-                let endY = targetY;
+                let startX_offset = sourceX;
+                let startY_offset = sourceY;
+                let endX_offset = targetX;
+                let endY_offset = targetY;
 
                 if (isBidirectional) {
                     const dx = targetX - sourceX;
@@ -116,17 +112,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (norm > 0) {
                         const nx = -dy / norm;
                         const ny = dx / norm;
-                        const offset = 5; // 5px offset for parallel lines
+                        const offset = 5;
                         
-                        // Offset the start and end points
-                        startX += offset * nx;
-                        startY += offset * ny;
-                        endX += offset * nx;
-                        endY += offset * ny;
+                        startX_offset += offset * nx;
+                        startY_offset += offset * ny;
+                        endX_offset += offset * nx;
+                        endY_offset += offset * ny;
                     }
                 }
 
-                const pathData = `M ${startX} ${startY} L ${endX} ${endY}`;
+                const pathData = `M ${startX_offset} ${startY_offset} L ${endX_offset} ${endY_offset}`;
                 
                 arrow.setAttribute('d', pathData);
                 arrow.setAttribute('stroke', `url(#${gradientId})`);
@@ -135,51 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 svgLayer.insertBefore(arrow, tempArrow);
             }
         });
-    }
-
-    function renderEditorPanel() {
-        const node = nodes.find(n => n.id === selectedNodeId);
-        linksTableBody.innerHTML = '';
-
-        if (node) {
-            document.getElementById('node-id-input').value = node.id;
-            document.getElementById('node-name-input').value = node.name;
-            document.getElementById('node-commit-input').value = node.commit;
-            
-            for (const targetNodeId in node.links) {
-                const targetNode = nodes.find(n => n.id === targetNodeId);
-                if (!targetNode) continue;
-
-                const weight = node.links[targetNodeId];
-                const row = document.createElement('tr');
-                row.className = "border-b border-gray-200 dark:border-gray-700";
-                row.innerHTML = `
-                    <td class="p-2 truncate" title="${targetNode.name}">${targetNode.name}</td>
-                    <td class="p-2 w-24">
-                        <div class="flex items-center justify-center space-x-2">
-                            <span class="font-mono w-4 text-center">${weight}</span>
-                            <div class="flex flex-col">
-                                <button class="link-weight-btn" data-target-id="${targetNodeId}" data-direction="up">
-                                    <svg class="pointer-events-none" width="12" height="12" viewBox="0 0 24 24"><path d="M12 4l-8 8h16z" fill="currentColor"/></svg>
-                                </button>
-                                <button class="link-weight-btn" data-target-id="${targetNodeId}" data-direction="down">
-                                    <svg class="pointer-events-none" width="12" height="12" viewBox="0 0 24 24"><path d="M12 20l8-8H4z" fill="currentColor"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="p-2 w-10 text-center">
-                        <button class="link-delete-btn text-gray-400 hover:text-red-500" data-target-id="${targetNodeId}">
-                            <svg class="pointer-events-none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
-                    </td>
-                `;
-                linksTableBody.appendChild(row);
-            }
-            editorPanel.classList.remove('translate-x-full');
-        } else {
-            editorPanel.classList.add('translate-x-full');
-        }
     }
     
     function updateNodeContainerTransform() {
@@ -198,14 +148,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleNodeSelection(nodeId) {
         selectedNodeId = nodeId;
-        renderNodes();
-        renderEditorPanel();
+        renderAll();
     }
 
     function deselectAll() {
         selectedNodeId = null;
-        renderNodes();
-        renderEditorPanel();
+        renderAll();
     }
 
     function handleNodeMouseDown(e, nodeId) {
@@ -237,108 +185,48 @@ document.addEventListener('DOMContentLoaded', () => {
         tempArrow.style.display = 'block';
     }
 
-    linksTableBody.addEventListener('click', e => {
-        const sourceNode = nodes.find(n => n.id === selectedNodeId);
-        if (!sourceNode) return;
-
-        const weightBtn = e.target.closest('.link-weight-btn');
-        const deleteBtn = e.target.closest('.link-delete-btn');
-
-        if (weightBtn) {
-            const targetId = weightBtn.dataset.targetId;
-            const direction = weightBtn.dataset.direction;
-            const currentWeight = sourceNode.links[targetId];
-            let newWeight = direction === 'up' ? (currentWeight % 3) + 1 : ((currentWeight - 2 + 3) % 3) + 1;
-            sourceNode.links[targetId] = newWeight;
-            renderEditorPanel();
-        }
-
-        if (deleteBtn) {
-            const targetId = deleteBtn.dataset.targetId;
-            delete sourceNode.links[targetId];
-            renderAll();
-            renderEditorPanel();
-        }
-    });
-
     addNodeBtn.addEventListener('click', () => {
         const newId = `node_${Date.now()}`;
         const boardRect = board.getBoundingClientRect();
         const x = (boardRect.width / 2) - boardState.panX - 75;
         const y = (boardRect.height / 2) - boardState.panY - 50;
         nodes.push({ id: newId, name: '새로운 목표', commit: 0, x, y, links: {}, activation: 0 });
-        renderNodes();
         handleNodeSelection(newId);
     });
 
-    // --- ACTIVATION CALCULATION ---
     function calculateAndPropagateActivation() {
-        const ic = 3; // iter-const
-        const alpha = 0.2; // propagation constant
-
-        // 1. Pause other operations
+        const ic = 3;
+        const alpha = 0.2;
         addNodeBtn.disabled = true;
         calcActivationBtn.disabled = true;
-        addNodeBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        calcActivationBtn.classList.add('opacity-50', 'cursor-not-allowed');
         showSnackbar('Activation 계산 중...');
-
-        // Reset activations for a fresh calculation each time
         nodes.forEach(node => { node.activation = 0; });
 
-        // Use a timeout to allow UI to update before blocking calculation
         setTimeout(() => {
-            // 2. Run iteration
             for (let i = 0; i < ic; i++) {
                 const increments = nodes.reduce((acc, node) => ({ ...acc, [node.id]: 0 }), {});
-
-                // Calculate all increments based on the state at the start of the iteration
                 nodes.forEach(sourceNode => {
                     for (const targetNodeId in sourceNode.links) {
                         if (nodes.some(n => n.id === targetNodeId)) {
                             const weight = sourceNode.links[targetNodeId];
-                            // Formula: increase = (weight * commit) + (current_activation * alpha)
                             const increment = (weight * sourceNode.commit) + (sourceNode.activation * alpha);
                             increments[targetNodeId] += increment;
                         }
                     }
                 });
-
-                // Apply increments to all nodes simultaneously
                 nodes.forEach(node => {
                     node.activation += increments[node.id];
                 });
             }
-
-            // 3. Restart operations
             addNodeBtn.disabled = false;
             calcActivationBtn.disabled = false;
-            addNodeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            calcActivationBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-
-            // 4. Update UI and notify completion
             renderNodes();
             showSnackbar('Activation 계산 완료!');
         }, 100);
     }
 
     calcActivationBtn.addEventListener('click', calculateAndPropagateActivation);
-
-
-    closePanelBtn.addEventListener('click', deselectAll);
     board.addEventListener('click', e => { if (e.target === board) deselectAll(); });
-
-    editorForm.addEventListener('submit', e => {
-        e.preventDefault();
-        const id = document.getElementById('node-id-input').value;
-        const node = nodes.find(n => n.id === id);
-        if (node) {
-            node.name = document.getElementById('node-name-input').value;
-            node.commit = parseInt(document.getElementById('node-commit-input').value, 10) || 0;
-            renderAll();
-            renderEditorPanel();
-        }
-    });
 
     board.addEventListener('mousedown', e => {
         if ((e.target === board || e.target === nodeContainer) && e.button === 0) {
@@ -362,9 +250,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         sourceNode.links[targetNodeId] = 1;
                         renderAll();
-                        if(selectedNodeId === sourceNode.id) {
-                            renderEditorPanel();
-                        }
                     }
                 }
             }
@@ -404,6 +289,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function initialize() {
+        initEditor({
+            onClose: deselectAll,
+            onSave: (id, newName, newCommit) => {
+                const node = nodes.find(n => n.id === id);
+                if (node) {
+                    node.name = newName;
+                    node.commit = newCommit;
+                    renderAll();
+                }
+            },
+            onLinkUpdate: (action, sourceId, targetId, newWeight) => {
+                const sourceNode = nodes.find(n => n.id === sourceId);
+                if (!sourceNode) return;
+
+                if (action === 'update-weight') {
+                    sourceNode.links[targetId] = newWeight;
+                } else if (action === 'delete-link') {
+                    delete sourceNode.links[targetId];
+                }
+                renderAll();
+            }
+        });
+
         nodes = [
             { id: 'app_dev', name: 'App Develop', commit: 50, x: 150, y: 200, links: { 'ai_theory': 1 }, activation: 0 },
             { id: 'ai_theory', name: 'AI Theory', commit: 30, x: 450, y: 150, links: { 'app_dev': 2 }, activation: 0 },
