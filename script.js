@@ -120,11 +120,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
+                const weight = sourceNode.links[targetNodeId];
+                const strokeWidth = 2 * weight;
+
                 const pathData = `M ${startX_offset} ${startY_offset} L ${endX_offset} ${endY_offset}`;
                 
                 arrow.setAttribute('d', pathData);
                 arrow.setAttribute('stroke', `url(#${gradientId})`);
-                arrow.setAttribute('stroke-width', '4');
+                arrow.setAttribute('stroke-width', String(strokeWidth));
                 arrow.setAttribute('fill', 'none');
                 svgLayer.appendChild(arrow);
             }
@@ -307,6 +310,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Prevent the default browser context menu from appearing
+    window.addEventListener('contextmenu', e => {
+        e.preventDefault();
+    });
+
     board.addEventListener('wheel', e => {
         e.preventDefault();
         const zoomSpeed = 0.1;
@@ -347,11 +355,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 saveNodes(nodes);
                 renderAll();
+            },
+            onDelete: (id) => {
+                if (confirm('Are you sure you want to delete this node?')) {
+                    // Remove the node itself
+                    nodes = nodes.filter(n => n.id !== id);
+                    // Remove any links pointing to the deleted node
+                    nodes.forEach(n => {
+                        if (n.links[id]) {
+                            delete n.links[id];
+                        }
+                    });
+                    saveNodes(nodes);
+                    deselectAll();
+                }
             }
         });
 
         const savedNodes = loadNodes();
-        if (savedNodes) {
+        if (savedNodes && savedNodes.length > 0) {
             nodes = savedNodes;
         } else {
             nodes = [

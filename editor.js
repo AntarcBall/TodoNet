@@ -1,12 +1,13 @@
 // editor.js
 
-let editorPanel, closePanelBtn, editorForm, linksTableBody;
+let editorPanel, closePanelBtn, editorForm, linksTableBody, deleteNodeBtn;
 let nodes, selectedNodeId;
-let onSaveCallback, onCloseCallback, onLinkUpdateCallback;
+let onSaveCallback, onCloseCallback, onLinkUpdateCallback, onDeleteCallback;
 
 function getDOMElements() {
     editorPanel = document.getElementById('editor-panel');
     closePanelBtn = document.getElementById('close-panel-btn');
+    deleteNodeBtn = document.getElementById('delete-node-btn');
     editorForm = document.getElementById('node-editor-form');
     linksTableBody = document.getElementById('links-table-body');
 }
@@ -48,8 +49,14 @@ export function initEditor(callbacks) {
     onSaveCallback = callbacks.onSave;
     onCloseCallback = callbacks.onClose;
     onLinkUpdateCallback = callbacks.onLinkUpdate;
+    onDeleteCallback = callbacks.onDelete;
 
     closePanelBtn.addEventListener('click', onCloseCallback);
+    deleteNodeBtn.addEventListener('click', () => {
+        if (selectedNodeId) {
+            onDeleteCallback(selectedNodeId);
+        }
+    });
     editorForm.addEventListener('submit', handleFormSubmit);
     linksTableBody.addEventListener('click', handleLinksTableClick);
 }
