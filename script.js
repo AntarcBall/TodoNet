@@ -104,30 +104,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const isBidirectional = targetNode.links[sourceNode.id];
                 
-                let pathData;
-                if (isBidirectional && sourceNode.id < targetNode.id) { // Draw curve only once for bidirectional pairs
+                let startX = sourceX;
+                let startY = sourceY;
+                let endX = targetX;
+                let endY = targetY;
+
+                if (isBidirectional) {
                     const dx = targetX - sourceX;
                     const dy = targetY - sourceY;
                     const norm = Math.sqrt(dx * dx + dy * dy);
-                    const nx = -dy / norm;
-                    const ny = dx / norm;
-                    const curveOffset = 20;
-                    
-                    const controlX = sourceX + dx / 2 + curveOffset * nx;
-                    const controlY = sourceY + dy / 2 + curveOffset * ny;
-                    
-                    pathData = `M ${sourceX} ${sourceY} Q ${controlX} ${controlY} ${targetX} ${targetY}`;
-                } else if (!isBidirectional) {
-                    pathData = `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`;
+                    if (norm > 0) {
+                        const nx = -dy / norm;
+                        const ny = dx / norm;
+                        const offset = 5; // 5px offset for parallel lines
+                        
+                        // Offset the start and end points
+                        startX += offset * nx;
+                        startY += offset * ny;
+                        endX += offset * nx;
+                        endY += offset * ny;
+                    }
                 }
 
-                if(pathData) {
-                    arrow.setAttribute('d', pathData);
-                    arrow.setAttribute('stroke', `url(#${gradientId})`);
-                    arrow.setAttribute('stroke-width', '4');
-                    arrow.setAttribute('fill', 'none');
-                    svgLayer.insertBefore(arrow, tempArrow);
-                }
+                const pathData = `M ${startX} ${startY} L ${endX} ${endY}`;
+                
+                arrow.setAttribute('d', pathData);
+                arrow.setAttribute('stroke', `url(#${gradientId})`);
+                arrow.setAttribute('stroke-width', '4');
+                arrow.setAttribute('fill', 'none');
+                svgLayer.insertBefore(arrow, tempArrow);
             }
         });
     }
