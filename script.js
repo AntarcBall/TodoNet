@@ -1,4 +1,5 @@
 import { initEditor, renderEditorPanel } from './editor.js';
+import { saveNodes, loadNodes } from './storage.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
@@ -21,7 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- RENDER FUNCTIONS ---
     function renderAll() {
-        // Use requestAnimationFrame to batch DOM updates for smoother rendering
         requestAnimationFrame(() => {
             renderNodes();
             renderArrows();
@@ -30,9 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderNodes() {
-        // Clear only nodes, not the whole container which now holds the SVG layer
         Array.from(nodeContainer.querySelectorAll('.node')).forEach(el => el.remove());
-
         nodes.forEach(node => {
             const nodeEl = document.createElement('div');
             nodeEl.className = 'node';
@@ -140,6 +138,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const gridSize = 40 * boardState.zoom;
         gridBackground.style.backgroundSize = `${gridSize}px ${gridSize}px`;
         gridBackground.style.backgroundPosition = `${boardState.panX}px ${boardState.panY}px`;
+
+        const strokeWidth = 2 / boardState.zoom;
+        const dashArray = `${5 / boardState.zoom} ${5 / boardState.zoom}`;
+        tempArrow.setAttribute('stroke-width', String(strokeWidth));
+        tempArrow.setAttribute('stroke-dasharray', dashArray);
     }
 
     function showSnackbar(message) {
@@ -197,6 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const x = ((boardRect.width / 2) - boardState.panX) / boardState.zoom - 75;
         const y = ((boardRect.height / 2) - boardState.panY) / boardState.zoom - 50;
         nodes.push({ id: newId, name: '새로운 목표', commit: 0, x, y, links: {}, activation: 0 });
+        saveNodes(nodes);
         handleNodeSelection(newId);
     });
 
@@ -255,11 +259,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         showSnackbar("이미 존재하는 연결입니다.");
                     } else {
                         sourceNode.links[targetNodeId] = 1;
+                        saveNodes(nodes);
                         renderAll();
                     }
                 }
             }
         }
+        
+        if (dragState.isDraggingNode) {
+            saveNodes(nodes);
+        }
+
         board.classList.remove('grabbing');
         boardState.isPanning = false;
         dragState.isDraggingNode = false;
@@ -322,6 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (node) {
                     node.name = newName;
                     node.commit = newCommit;
+                    saveNodes(nodes);
                     renderAll();
                 }
             },
@@ -334,15 +345,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (action === 'delete-link') {
                     delete sourceNode.links[targetId];
                 }
+                saveNodes(nodes);
                 renderAll();
             }
         });
 
-        nodes = [
-            { id: 'app_dev', name: 'App Develop', commit: 50, x: 150, y: 200, links: { 'ai_theory': 1 }, activation: 0 },
-            { id: 'ai_theory', name: 'AI Theory', commit: 30, x: 450, y: 150, links: { 'app_dev': 2 }, activation: 0 },
-            { id: 'exercise', name: '운동하기', commit: 80, x: 300, y: 400, links: { 'app_dev': 1 }, activation: 0 }
-        ];
+        const savedNodes = loadNodes();
+        if (savedNodes) {
+            nodes = savedNodes;
+        } else {
+            nodes = [
+                { id: 'app_dev', name: 'App Develop', commit: 50, x: 150, y: 200, links: { 'ai_theory': 1 }, activation: 0 },
+                { id: 'ai_theory', name: 'AI Theory', commit: 30, x: 450, y: 150, links: { 'app_dev': 2 }, activation: 0 },
+                { id: 'exercise', name: '운동하기', commit: 80, x: 300, y: 400, links: { 'app_dev': 1 }, activation: 0 }
+            ];
+        }
         
         const boardRect = board.getBoundingClientRect();
         boardState.panX = boardRect.width / 2 - 300;
