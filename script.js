@@ -88,10 +88,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 gradient.setAttribute('x2', targetX);
                 gradient.setAttribute('y2', targetY);
                 gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+
+                const styles = getComputedStyle(document.documentElement);
+                const startColor = styles.getPropertyValue('--arrow-gradient-start-color').trim();
+                const endColor = styles.getPropertyValue('--arrow-gradient-end-color').trim();
                 
                 gradient.innerHTML = `
-                    <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#9ca3af;stop-opacity:1" />
+                    <stop offset="0%" style="stop-color:${startColor};stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:${endColor};stop-opacity:1" />
                 `;
                 gradientDefs.appendChild(gradient);
 
