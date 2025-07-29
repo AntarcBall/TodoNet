@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h3>${node.name}</h3>
                 <div class="commit-value">${node.commit}</div>
                 <div class="activation-value">${node.activation.toFixed(2)}</div>
+                ${node.starred ? `<div class="star-indicator"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div>` : ''}
             `;
             
             nodeEl.addEventListener('click', e => { e.stopPropagation(); handleNodeSelection(node.id); });
@@ -221,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const boardRect = board.getBoundingClientRect();
         const x = ((boardRect.width / 2) - boardState.panX) / boardState.zoom - 75;
         const y = ((boardRect.height / 2) - boardState.panY) / boardState.zoom - 50;
-        nodes.push({ id: newId, name: '새로운 목표', commit: 0, x, y, links: {}, activation: 0, color: '#000000' });
+        nodes.push({ id: newId, name: '새로운 목표', commit: 0, x, y, links: {}, activation: 0, color: '#000000', starred: false });
         saveNodes(nodes);
         handleNodeSelection(newId);
     });
@@ -406,6 +407,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderAll();
                 }
             },
+            onStarUpdate: (id) => {
+                const node = nodes.find(n => n.id === id);
+                if (node) {
+                    node.starred = !node.starred;
+                    saveNodes(nodes);
+                    renderAll();
+                }
+            },
             onLinkUpdate: (action, sourceId, targetId, newWeight) => {
                 const sourceNode = nodes.find(n => n.id === sourceId);
                 if (!sourceNode) return;
@@ -450,10 +459,13 @@ document.addEventListener('DOMContentLoaded', () => {
             ];
         }
         
-        // Ensure all loaded nodes have a color property
+        // Ensure all loaded nodes have the necessary properties for backward compatibility
         nodes.forEach(node => {
-            if (!node.color) {
+            if (node.color === undefined) {
                 node.color = '#000000';
+            }
+            if (node.starred === undefined) {
+                node.starred = false;
             }
         });
 

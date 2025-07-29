@@ -1,6 +1,6 @@
 :root {
-    --arrow-gradient-start-color: #09ff00;
-    --arrow-gradient-end-color: #2a2a2a;
+    --arrow-gradient-start-color: #ffff66;
+    --arrow-gradient-end-color: #ffee00;
     --panel-bg-color: #ffffff;
     --panel-text-color: #111827;
     --body-bg-color: #f3f4f6;
@@ -108,7 +108,18 @@ body {
     line-height: 1.75rem;
     white-space: nowrap;
     color: var(--node-name-color, var(--body-text-color));
+    position: relative;
 }
+
+.node .star-indicator {
+    position: absolute;
+    top: -0.5rem;
+    right: -0.5rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #facc15; /* yellow-400 */
+}
+
 .node .commit-value {
     text-align: center;
     font-size: 1.875rem;
@@ -207,6 +218,23 @@ body {
 }
 #delete-node-btn:hover {
     color: #ef4444; /* red-500 */
+}
+.header-icon-btn {
+    background: none;
+    border: none;
+    color: #9ca3af; /* gray-400 */
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+.header-icon-btn:hover {
+    transform: scale(1.1);
+}
+#star-node-btn.starred {
+    color: #facc15; /* yellow-400 */
+}
+#star-node-btn.starred svg {
+    fill: #facc15;
 }
 #editor-panel .editor-header button {
     background: none;

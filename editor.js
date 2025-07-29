@@ -1,8 +1,8 @@
-// editor.js
+import { config } from './config.js';
 
-let editorPanel, closePanelBtn, editorForm, linksTableBody, deleteNodeBtn, colorPaletteContainer;
+let editorPanel, closePanelBtn, editorForm, linksTableBody, deleteNodeBtn, colorPaletteContainer, starNodeBtn;
 let nodes, selectedNodeId;
-let onSaveCallback, onCloseCallback, onLinkUpdateCallback, onDeleteCallback, onColorUpdateCallback;
+let onSaveCallback, onCloseCallback, onLinkUpdateCallback, onDeleteCallback, onColorUpdateCallback, onStarUpdateCallback;
 
 const availableColors = ['#000000', '#fef08a', '#a7f3d0', '#fecdd3', '#d8b4fe', '#a5f3fc', '#fdba74'];
 
@@ -10,6 +10,7 @@ function getDOMElements() {
     editorPanel = document.getElementById('editor-panel');
     closePanelBtn = document.getElementById('close-panel-btn');
     deleteNodeBtn = document.getElementById('delete-node-btn');
+    starNodeBtn = document.getElementById('star-node-btn');
     editorForm = document.getElementById('node-editor-form');
     linksTableBody = document.getElementById('links-table-body');
     colorPaletteContainer = document.getElementById('color-palette');
@@ -62,6 +63,7 @@ export function initEditor(callbacks) {
     onLinkUpdateCallback = callbacks.onLinkUpdate;
     onDeleteCallback = callbacks.onDelete;
     onColorUpdateCallback = callbacks.onColorUpdate;
+    onStarUpdateCallback = callbacks.onStarUpdate;
 
     closePanelBtn.addEventListener('click', onCloseCallback);
     deleteNodeBtn.addEventListener('click', () => {
@@ -69,9 +71,24 @@ export function initEditor(callbacks) {
             onDeleteCallback(selectedNodeId);
         }
     });
+    starNodeBtn.addEventListener('click', () => {
+        if (selectedNodeId) {
+            onStarUpdateCallback(selectedNodeId);
+        }
+    });
     editorForm.addEventListener('submit', handleFormSubmit);
     linksTableBody.addEventListener('click', handleLinksTableClick);
     colorPaletteContainer.addEventListener('click', handleColorPaletteClick);
+    editorPanel.addEventListener('keydown', handlePanelKeyDown);
+}
+
+function handlePanelKeyDown(e) {
+    if (config.debug.easy_commit && e.altKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        const commitInput = document.getElementById('node-commit-input');
+        const currentCommit = parseInt(commitInput.value, 10) || 0;
+        commitInput.value = currentCommit + 20;
+    }
 }
 
 export function renderEditorPanel(currentNodes, currentSelectedNodeId) {
@@ -86,6 +103,13 @@ export function renderEditorPanel(currentNodes, currentSelectedNodeId) {
         document.getElementById('node-name-input').value = node.name;
         document.getElementById('node-commit-input').value = node.commit;
         
+        // Update star button state
+        if (node.starred) {
+            starNodeBtn.classList.add('starred');
+        } else {
+            starNodeBtn.classList.remove('starred');
+        }
+
         for (const targetNodeId in node.links) {
             const targetNode = nodes.find(n => n.id === targetNodeId);
             if (!targetNode) continue;
