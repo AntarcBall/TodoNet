@@ -1,6 +1,6 @@
 :root {
-    --arrow-gradient-start-color: #00ff26;
-    --arrow-gradient-end-color: #6d6d6d;
+    --arrow-gradient-start-color: #09ff00;
+    --arrow-gradient-end-color: #2a2a2a;
     --panel-bg-color: #ffffff;
     --panel-text-color: #111827;
     --body-bg-color: #f3f4f6;
@@ -93,7 +93,8 @@ body {
     --node-end-color: #000; /* Default to black */
     background: linear-gradient(to bottom, #000 0%, #000 50%, var(--node-end-color) 100%);
 }
-.node:hover {
+.node:hover,
+.node.dragging {
     border-color: #facc15; /* yellow-400 */
 }
 .node.selected {
@@ -106,6 +107,7 @@ body {
     font-size: 1.125rem;
     line-height: 1.75rem;
     white-space: nowrap;
+    color: var(--node-name-color, var(--body-text-color));
 }
 .node .commit-value {
     text-align: center;
@@ -304,6 +306,33 @@ body {
     color: #ef4444; /* red-500 */
     transform: scale(1.1);
 }
+
+#editor-panel .color-palette-container {
+    display: flex;
+    overflow-x: auto;
+    padding: 0.5rem 0;
+    gap: 0.75rem;
+}
+
+#editor-panel .color-swatch {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px; /* circle */
+    cursor: pointer;
+    border: 2px solid var(--input-border-color);
+    transition: transform 0.2s;
+    flex-shrink: 0; /* Prevent swatches from shrinking */
+}
+
+#editor-panel .color-swatch:hover {
+    transform: scale(1.1);
+}
+
+#editor-panel .color-swatch.selected {
+    border-color: var(--button-primary-bg);
+    box-shadow: 0 0 0 2px var(--button-primary-bg);
+}
+
 #editor-panel .save-button {
     width: 100%;
     background-color: var(--button-primary-bg);

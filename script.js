@@ -39,7 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
             nodeEl.style.top = `${node.y}px`;
             nodeEl.dataset.id = node.id;
             if (node.id === selectedNodeId) nodeEl.classList.add('selected');
+            if (node.id === dragState.draggedNodeId) nodeEl.classList.add('dragging');
             
+            // Set the name color
+            if (node.color) {
+                nodeEl.style.setProperty('--node-name-color', node.color);
+            }
+
             // Calculate and set the dynamic background gradient
             const activationRatio = Math.min(node.activation / config.visuals.maxActivation, 1);
             const endColor = `rgba(${config.visuals.highlightRgb}, ${activationRatio})`;
@@ -177,7 +183,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleNodeMouseDown(e, nodeId) {
         e.stopPropagation();
-        if (e.button === 0) {
+        if (e.button === 0) { // Left mouse button
+            // Select the node first
+            handleNodeSelection(nodeId);
+
+            // Then, set up for dragging
             dragState.isDraggingNode = true;
             dragState.draggedNodeId = nodeId;
             const node = nodes.find(n => n.id === nodeId);
@@ -211,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const boardRect = board.getBoundingClientRect();
         const x = ((boardRect.width / 2) - boardState.panX) / boardState.zoom - 75;
         const y = ((boardRect.height / 2) - boardState.panY) / boardState.zoom - 50;
-        nodes.push({ id: newId, name: '새로운 목표', commit: 0, x, y, links: {}, activation: 0 });
+        nodes.push({ id: newId, name: '새로운 목표', commit: 0, x, y, links: {}, activation: 0, color: '#000000' });
         saveNodes(nodes);
         handleNodeSelection(newId);
     });
@@ -388,6 +398,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderAll();
                 }
             },
+            onColorUpdate: (id, newColor) => {
+                const node = nodes.find(n => n.id === id);
+                if (node) {
+                    node.color = newColor;
+                    saveNodes(nodes);
+                    renderAll();
+                }
+            },
             onLinkUpdate: (action, sourceId, targetId, newWeight) => {
                 const sourceNode = nodes.find(n => n.id === sourceId);
                 if (!sourceNode) return;
@@ -426,12 +444,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const centerX = boardSize / 2;
             const centerY = boardSize / 2;
             nodes = [
-                { id: 'app_dev', name: 'App Develop', commit: 50, x: centerX - 150, y: centerY, links: { 'ai_theory': 1 }, activation: 0 },
-                { id: 'ai_theory', name: 'AI Theory', commit: 30, x: centerX + 150, y: centerY - 50, links: { 'app_dev': 2 }, activation: 0 },
-                { id: 'exercise', name: '운동하기', commit: 80, x: centerX, y: centerY + 200, links: { 'app_dev': 1 }, activation: 0 }
+                { id: 'app_dev', name: 'App Develop', commit: 50, x: centerX - 150, y: centerY, links: { 'ai_theory': 1 }, activation: 0, color: '#000000' },
+                { id: 'ai_theory', name: 'AI Theory', commit: 30, x: centerX + 150, y: centerY - 50, links: { 'app_dev': 2 }, activation: 0, color: '#000000' },
+                { id: 'exercise', name: '운동하기', commit: 80, x: centerX, y: centerY + 200, links: { 'app_dev': 1 }, activation: 0, color: '#000000' }
             ];
         }
         
+        // Ensure all loaded nodes have a color property
+        nodes.forEach(node => {
+            if (!node.color) {
+                node.color = '#000000';
+            }
+        });
+
         // Center the view on the content
         const boardRect = board.getBoundingClientRect();
         boardState.panX = (boardRect.width / 2) - (boardSize / 2);

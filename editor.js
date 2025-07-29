@@ -1,8 +1,10 @@
 // editor.js
 
-let editorPanel, closePanelBtn, editorForm, linksTableBody, deleteNodeBtn;
+let editorPanel, closePanelBtn, editorForm, linksTableBody, deleteNodeBtn, colorPaletteContainer;
 let nodes, selectedNodeId;
-let onSaveCallback, onCloseCallback, onLinkUpdateCallback, onDeleteCallback;
+let onSaveCallback, onCloseCallback, onLinkUpdateCallback, onDeleteCallback, onColorUpdateCallback;
+
+const availableColors = ['#000000', '#fef08a', '#a7f3d0', '#fecdd3', '#d8b4fe', '#a5f3fc', '#fdba74'];
 
 function getDOMElements() {
     editorPanel = document.getElementById('editor-panel');
@@ -10,6 +12,7 @@ function getDOMElements() {
     deleteNodeBtn = document.getElementById('delete-node-btn');
     editorForm = document.getElementById('node-editor-form');
     linksTableBody = document.getElementById('links-table-body');
+    colorPaletteContainer = document.getElementById('color-palette');
 }
 
 function handleFormSubmit(e) {
@@ -20,6 +23,14 @@ function handleFormSubmit(e) {
         const newName = document.getElementById('node-name-input').value;
         const newCommit = parseInt(document.getElementById('node-commit-input').value, 10) || 0;
         onSaveCallback(id, newName, newCommit);
+    }
+}
+
+function handleColorPaletteClick(e) {
+    const swatch = e.target.closest('.color-swatch');
+    if (swatch && selectedNodeId) {
+        const newColor = swatch.dataset.color;
+        onColorUpdateCallback(selectedNodeId, newColor);
     }
 }
 
@@ -50,6 +61,7 @@ export function initEditor(callbacks) {
     onCloseCallback = callbacks.onClose;
     onLinkUpdateCallback = callbacks.onLinkUpdate;
     onDeleteCallback = callbacks.onDelete;
+    onColorUpdateCallback = callbacks.onColorUpdate;
 
     closePanelBtn.addEventListener('click', onCloseCallback);
     deleteNodeBtn.addEventListener('click', () => {
@@ -59,6 +71,7 @@ export function initEditor(callbacks) {
     });
     editorForm.addEventListener('submit', handleFormSubmit);
     linksTableBody.addEventListener('click', handleLinksTableClick);
+    colorPaletteContainer.addEventListener('click', handleColorPaletteClick);
 }
 
 export function renderEditorPanel(currentNodes, currentSelectedNodeId) {
@@ -102,6 +115,20 @@ export function renderEditorPanel(currentNodes, currentSelectedNodeId) {
             `;
             linksTableBody.appendChild(row);
         }
+
+        // Render color palette
+        colorPaletteContainer.innerHTML = '';
+        availableColors.forEach(color => {
+            const swatch = document.createElement('div');
+            swatch.className = 'color-swatch';
+            swatch.dataset.color = color;
+            swatch.style.backgroundColor = color;
+            if (node.color === color) {
+                swatch.classList.add('selected');
+            }
+            colorPaletteContainer.appendChild(swatch);
+        });
+
     } else {
         editorPanel.classList.remove('show');
     }
