@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tempArrow = document.getElementById('temp-arrow');
     const gridBackground = document.getElementById('grid-background');
     const snackbar = document.getElementById('snackbar');
+    const starredNodesTableBody = document.querySelector('#starred-nodes-table tbody');
 
     // State
     let nodes = [];
@@ -27,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderNodes();
             renderArrows();
             renderEditorPanel(nodes, selectedNodeId);
+            renderStarredNodesPanel();
         });
     }
 
@@ -148,6 +150,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 svgLayer.appendChild(arrow);
             }
         });
+    }
+
+    function renderStarredNodesPanel() {
+        starredNodesTableBody.innerHTML = '';
+        const starredNodes = nodes.filter(node => node.starred);
+
+        if (starredNodes.length === 0) {
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.colSpan = 2;
+            cell.textContent = 'No starred nodes yet.';
+            row.appendChild(cell);
+            starredNodesTableBody.appendChild(row);
+            return;
+        }
+
+        starredNodes
+            .sort((a, b) => b.activation - a.activation)
+            .forEach(node => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${node.name}</td>
+                    <td>${node.activation.toFixed(2)}</td>
+                `;
+                starredNodesTableBody.appendChild(row);
+            });
     }
     
     function updateNodeContainerTransform() {
@@ -504,6 +532,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Expose the function to the console for easy access
     window.createNodesFromCommand = createNodesFromCommand;
+
+    function exportNodesToFile() {
+        try {
+            const dataStr = JSON.stringify(nodes, null, 2); // Pretty-print JSON
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `todenet_export_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                showSnackbar('Node data exported successfully.');
+            }, 0);
+        } catch (error) {
+            console.error('Failed to export nodes:', error);
+            showSnackbar('Error exporting node data.');
+        }
+    }
+
+    // Expose the export function to the console
+    window.exportNodes = exportNodesToFile;
 
     initialize();
 });
