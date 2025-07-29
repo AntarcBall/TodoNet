@@ -205,7 +205,7 @@ body {
     background-color: #d97706; /* amber-600 */
 }
 .control-button.disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
 }
 
@@ -429,4 +429,5 @@ body {
     stroke-linecap: round;
     stroke-linejoin: round;
     transition: stroke-width 0.15s ease-in-out;
+    opacity: 0.3;
 }
