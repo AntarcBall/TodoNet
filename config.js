@@ -18,8 +18,12 @@ export const config = {
 
     // Link Style Parameters
     links: {
-        baseWidth: 2,       // Base width in pixels for a link with weight 1
-        parallelOffset: 5   // Offset in pixels for bidirectional links
+        baseWidth: 3,           // Base width in pixels for a link with weight 1
+        parallelOffset: 5,      // Offset in pixels for bidirectional links
+        startRatio: 0.2,        // Where the visible line starts (0.0 to 1.0)
+        endRatio: 0.7,          // Where the visible line ends (0.0 to 1.0)
+        arrowheadSize: 22,      // Base size of the arrowhead
+        arrowheadColor: '#888'  // Color of the arrowhead
     },
 
     // Visual and Theming Parameters

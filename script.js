@@ -60,8 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderArrows() {
         Array.from(svgLayer.querySelectorAll('.arrow-path')).forEach(path => path.remove());
-        gradientDefs.innerHTML = '';
-
+        
         nodes.forEach(sourceNode => {
             const sourceEl = nodeContainer.querySelector(`[data-id="${sourceNode.id}"]`);
             if (!sourceEl) return;
@@ -79,62 +78,66 @@ document.addEventListener('DOMContentLoaded', () => {
                 const targetX = targetNode.x + targetEl.offsetWidth / 2;
                 const targetY = targetNode.y + targetEl.offsetHeight / 2;
                 
-                const gradientId = `grad-${sourceNode.id}-to-${targetNode.id}`;
-                const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-                gradient.setAttribute('id', gradientId);
-                gradient.setAttribute('x1', String(sourceX));
-                gradient.setAttribute('y1', String(sourceY));
-                gradient.setAttribute('x2', String(targetX));
-                gradient.setAttribute('y2', String(targetY));
-                gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
-
-                const styles = getComputedStyle(document.documentElement);
-                const startColor = styles.getPropertyValue('--arrow-gradient-start-color').trim();
-                const endColor = styles.getPropertyValue('--arrow-gradient-end-color').trim();
+                const isBidirectional = targetNode.links[sourceNode.id];
                 
-                gradient.innerHTML = `
-                    <stop offset="0%" style="stop-color:${startColor}" />
-                    <stop offset="30%" style="stop-color:${startColor}" />
-                    <stop offset="70%" style="stop-color:${endColor}" />
-                    <stop offset="100%" style="stop-color:${endColor}" />
-                `;
-                gradientDefs.appendChild(gradient);
+                let offsetX = 0, offsetY = 0;
+                if (isBidirectional) {
+                    const d_dx = targetX - sourceX;
+                    const d_dy = targetY - sourceY;
+                    const norm = Math.sqrt(d_dx * d_dx + d_dy * d_dy);
+                    if (norm > 0) {
+                        offsetX = (-d_dy / norm) * config.links.parallelOffset;
+                        offsetY = (d_dx / norm) * config.links.parallelOffset;
+                    }
+                }
+
+                const x1 = sourceX + offsetX;
+                const y1 = sourceY + offsetY;
+                const x2 = targetX + offsetX;
+                const y2 = targetY + offsetY;
+
+                const dx_centers = x2 - x1;
+                const dy_centers = y2 - y1;
+                const distCenters = Math.sqrt(dx_centers*dx_centers + dy_centers*dy_centers);
+                const unitDx = dx_centers / distCenters;
+                const unitDy = dy_centers / distCenters;
+
+                // Approximate radius. A more complex calculation would be needed for perfect edge alignment on rectangles.
+                const radius1 = sourceEl.offsetWidth / 2;
+                const radius2 = targetEl.offsetWidth / 2;
+
+                const actualArrowStartX = x1 + radius1 * unitDx;
+                const actualArrowStartY = y1 + radius1 * unitDy;
+                const actualArrowEndX = x2 - radius2 * unitDx;
+                const actualArrowEndY = y2 - radius2 * unitDy;
+
+                const actualArrowLength = Math.sqrt(Math.pow(actualArrowEndX - actualArrowStartX, 2) + Math.pow(actualArrowEndY - actualArrowStartY, 2));
+
+                const lineStartX = actualArrowStartX + config.links.startRatio * actualArrowLength * unitDx;
+                const lineStartY = actualArrowStartY + config.links.startRatio * actualArrowLength * unitDy;
+                const lineEndX = actualArrowStartX + config.links.endRatio * actualArrowLength * unitDx;
+                const lineEndY = actualArrowStartY + config.links.endRatio * actualArrowLength * unitDy;
 
                 const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 arrow.setAttribute('class', 'arrow-path');
                 
-                const isBidirectional = targetNode.links[sourceNode.id];
-                
-                let startX_offset = sourceX;
-                let startY_offset = sourceY;
-                let endX_offset = targetX;
-                let endY_offset = targetY;
-
-                if (isBidirectional) {
-                    const dx = targetX - sourceX;
-                    const dy = targetY - sourceY;
-                    const norm = Math.sqrt(dx * dx + dy * dy);
-                    if (norm > 0) {
-                        const nx = -dy / norm;
-                        const ny = dx / norm;
-                        const offset = config.links.parallelOffset;
-                        
-                        startX_offset += offset * nx;
-                        startY_offset += offset * ny;
-                        endX_offset += offset * nx;
-                        endY_offset += offset * ny;
-                    }
-                }
-
                 const weight = sourceNode.links[targetNodeId];
                 const strokeWidth = config.links.baseWidth * weight;
+                const arrowheadSize = Math.max(config.links.arrowheadSize, strokeWidth * 1.5); // Make arrowhead proportional to weight, with a minimum size
 
-                const pathData = `M ${startX_offset} ${startY_offset} L ${endX_offset} ${endY_offset}`;
+                const pathData = `M ${lineStartX} ${lineStartY} L ${lineEndX} ${lineEndY}`;
                 
                 arrow.setAttribute('d', pathData);
-                arrow.setAttribute('stroke', `url(#${gradientId})`);
+                arrow.setAttribute('stroke', `url(#arrow-gradient)`);
                 arrow.setAttribute('stroke-width', String(strokeWidth));
                 arrow.setAttribute('fill', 'none');
+                arrow.setAttribute('marker-end', 'url(#arrowhead)');
+                
+                // Dynamically size the arrowhead
+                const marker = svgLayer.querySelector('#arrowhead');
+                marker.setAttribute('markerWidth', String(arrowheadSize));
+                marker.setAttribute('markerHeight', String(arrowheadSize));
+
                 svgLayer.appendChild(arrow);
             }
         });
@@ -340,7 +343,40 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
     });
 
+    function defineSvgDefs() {
+        const defs = svgLayer.querySelector('defs');
+
+        // Arrowhead Marker
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', 'arrowhead');
+        marker.setAttribute('viewBox', '0 0 10 10');
+        marker.setAttribute('refX', '5');
+        marker.setAttribute('refY', '5');
+        marker.setAttribute('markerUnits', 'userSpaceOnUse');
+        marker.setAttribute('orient', 'auto-start-reverse');
+        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        polygon.setAttribute('points', '0 0, 10 5, 0 10');
+        polygon.setAttribute('fill', config.links.arrowheadColor);
+        marker.appendChild(polygon);
+        defs.appendChild(marker);
+
+        // Reusable Arrow Gradient
+        const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+        gradient.setAttribute('id', 'arrow-gradient');
+        gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+        gradient.setAttribute('x1', '0%');
+        gradient.setAttribute('y1', '0%');
+        gradient.setAttribute('x2', '100%');
+        gradient.setAttribute('y2', '0%'); // Horizontal gradient, path rotation will handle direction
+        const styles = getComputedStyle(document.documentElement);
+        const startColor = styles.getPropertyValue('--arrow-gradient-start-color').trim();
+        const endColor = styles.getPropertyValue('--arrow-gradient-end-color').trim();
+        gradient.innerHTML = `<stop offset="0%" stop-color="${startColor}" /><stop offset="100%" stop-color="${endColor}" />`;
+        defs.appendChild(gradient);
+    }
+
     function initialize() {
+        defineSvgDefs();
         initEditor({
             onClose: deselectAll,
             onSave: (id, newName, newCommit) => {
@@ -404,6 +440,33 @@ document.addEventListener('DOMContentLoaded', () => {
         updateNodeContainerTransform();
         renderAll();
     }
+
+    function createNodesFromCommand(commandString) {
+        const names = commandString.split(',').map(name => name.trim()).filter(name => name.length > 0);
+        if (names.length === 0) {
+            showSnackbar("No valid node names provided.");
+            return;
+        }
+
+        const boardRect = board.getBoundingClientRect();
+        const base_x = ((boardRect.width / 2) - boardState.panX) / boardState.zoom - 75;
+        const base_y = ((boardRect.height / 2) - boardState.panY) / boardState.zoom - 50;
+        const nodeSpacing = 180; // Horizontal space between new nodes
+
+        names.forEach((name, index) => {
+            const newId = `node_${Date.now()}_${index}`;
+            const x = base_x + (index * nodeSpacing);
+            const y = base_y;
+            nodes.push({ id: newId, name: name, commit: 0, x, y, links: {}, activation: 0 });
+        });
+
+        saveNodes(nodes);
+        renderAll();
+        showSnackbar(`${names.length} new node(s) created.`);
+    }
+
+    // Expose the function to the console for easy access
+    window.createNodesFromCommand = createNodesFromCommand;
 
     initialize();
 });
