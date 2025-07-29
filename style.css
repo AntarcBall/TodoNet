@@ -206,16 +206,6 @@ body {
     line-height: 2rem;
     font-weight: 700;
 }
-#delete-node-btn {
-    background: none;
-    border: none;
-    color: #9ca3af; /* gray-400 */
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 1rem;
-    padding: 0.25rem;
-    transition: color 0.2s ease-in-out;
-}
 #delete-node-btn:hover {
     color: #ef4444; /* red-500 */
 }

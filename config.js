@@ -5,8 +5,8 @@
 export const config = {
     // Activation Calculation Parameters
     activation: {
-        iterations: 3,      // Number of iterations for the calculation (ic)
-        propagationRate: 0.3  // The rate at which activation propagates (alpha)
+        iterations: 4,      // Number of iterations for the calculation (ic)
+        propagationRate: 0.4  // The rate at which activation propagates (alpha)
     },
 
     // Zooming Parameters
