@@ -1,4 +1,4 @@
-<html><head></head><body><svg width="200" height="200" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-labelledby="logoTitle logoDesc">
+<svg width="200" height="200" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-labelledby="logoTitle logoDesc">
   <title id="logoTitle">신경망 투두앱 로고</title>
   <desc id="logoDesc">신경망 노드와 경로로 형성된 체크마크 모양의 로고</desc>
   
@@ -43,4 +43,3 @@
   <circle cx="40" cy="85" r="6" fill="url(#aiCheckGradient)"></circle>
 
 </svg>
-</body></html>

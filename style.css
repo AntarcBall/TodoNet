@@ -53,7 +53,7 @@ body {
 
 #acute-panel {
     position: fixed;
-    top: calc(40vh + 3rem);
+    top: calc(40vh + 1rem);
     left: 1.5rem;
     background-color: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(10px);
