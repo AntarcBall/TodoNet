@@ -516,3 +516,39 @@ body {
     transition: stroke-width 0.15s ease-in-out;
     opacity: 0.3;
 }
+
+.commit-input-container {
+    position: relative;
+}
+
+.commit-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.commit-buttons button {
+    flex: 1;
+    background-color: var(--input-bg-color);
+    border: 1px solid var(--input-border-color);
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.commit-buttons button:hover {
+    background-color: var(--input-border-color);
+}
+
+/* Hide the default number input arrows */
+#node-commit-input::-webkit-outer-spin-button,
+#node-commit-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#node-commit-input {
+    -moz-appearance: textfield;
+}

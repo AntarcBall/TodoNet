@@ -43,6 +43,17 @@ export function initEditor(callbacks) {
     linksTableBody.addEventListener('click', handleLinksTableClick);
     colorPaletteContainer.addEventListener('click', handleColorPaletteClick);
     editorPanel.addEventListener('keydown', handlePanelKeyDown);
+
+    document.getElementById('commit-plus-1').addEventListener('click', () => handleCommitButtonClick(1));
+    document.getElementById('commit-plus-5').addEventListener('click', () => handleCommitButtonClick(5));
+}
+
+function handleCommitButtonClick(amount) {
+    const commitInput = document.getElementById('node-commit-input');
+    const currentCommit = parseInt(commitInput.value, 10) || 0;
+    commitInput.value = currentCommit + amount;
+    // Programmatically trigger the form submission to save the change
+    editorForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
 }
 
 function handleFormSubmit(e) {
