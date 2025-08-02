@@ -1,7 +1,7 @@
 // ui.js
 import { config } from './config.js';
 import { renderEditorPanel } from './editor.js';
-import { renderHistoryPanel } from './history.js';
+import { renderAcutePanel } from './acute.js';
 
 let nodeContainer, svgLayer, tempArrow, gridBackground, snackbar, starredNodesTableBody;
 
@@ -28,7 +28,7 @@ export function renderAll(nodes, selectedNodeId, boardState) {
         renderArrows(nodes);
         renderEditorPanel(nodes, selectedNodeId);
         renderStarredNodesPanel(nodes);
-        renderHistoryPanel(nodes.filter(n => n.acute));
+        renderAcutePanel(nodes.filter(n => n.acute));
         updateNodeContainerTransform(boardState);
     });
 }

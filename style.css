@@ -51,7 +51,7 @@ body {
     font-size: 1.125rem;
 }
 
-#history-panel {
+#acute-panel {
     position: fixed;
     top: calc(40vh + 3rem);
     left: 1.5rem;
@@ -66,25 +66,25 @@ body {
     overflow-y: auto;
 }
 
-#history-panel h3 {
+#acute-panel h3 {
     margin-top: 0;
     margin-bottom: 0.75rem;
     font-size: 1.125rem;
 }
 
-#history-panel table {
+#acute-panel table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
 }
 
-#history-panel th, #history-panel td {
+#acute-panel th, #acute-panel td {
     text-align: left;
     padding: 0.5rem;
     border-bottom: 1px solid var(--input-border-color);
 }
 
-#history-panel th {
+#acute-panel th {
     font-weight: 600;
 }
 
