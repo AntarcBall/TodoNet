@@ -1,8 +1,8 @@
 import { config } from './config.js';
 
-let editorPanel, closePanelBtn, editorForm, linksTableBody, deleteNodeBtn, colorPaletteContainer, starNodeBtn;
+let editorPanel, closePanelBtn, editorForm, linksTableBody, deleteNodeBtn, colorPaletteContainer, starNodeBtn, acuteNodeBtn;
 let nodes, selectedNodeId;
-let onSaveCallback, onCloseCallback, onLinkUpdateCallback, onDeleteCallback, onColorUpdateCallback, onStarUpdateCallback;
+let onSaveCallback, onCloseCallback, onLinkUpdateCallback, onDeleteCallback, onColorUpdateCallback, onStarUpdateCallback, onAcuteUpdateCallback;
 
 const availableColors = ['#000000', '#fef08a', '#a7f3d0', '#fecdd3', '#d8b4fe', '#a5f3fc', '#fdba74'];
 
@@ -11,6 +11,7 @@ function getDOMElements() {
     closePanelBtn = document.getElementById('close-panel-btn');
     deleteNodeBtn = document.getElementById('delete-node-btn');
     starNodeBtn = document.getElementById('star-node-btn');
+    acuteNodeBtn = document.getElementById('acute-node-btn');
     editorForm = document.getElementById('node-editor-form');
     linksTableBody = document.getElementById('links-table-body');
     colorPaletteContainer = document.getElementById('color-palette');
@@ -64,6 +65,7 @@ export function initEditor(callbacks) {
     onDeleteCallback = callbacks.onDelete;
     onColorUpdateCallback = callbacks.onColorUpdate;
     onStarUpdateCallback = callbacks.onStarUpdate;
+    onAcuteUpdateCallback = callbacks.onAcuteUpdate;
 
     closePanelBtn.addEventListener('click', onCloseCallback);
     deleteNodeBtn.addEventListener('click', () => {
@@ -74,6 +76,11 @@ export function initEditor(callbacks) {
     starNodeBtn.addEventListener('click', () => {
         if (selectedNodeId) {
             onStarUpdateCallback(selectedNodeId);
+        }
+    });
+    acuteNodeBtn.addEventListener('click', () => {
+        if (selectedNodeId) {
+            onAcuteUpdateCallback(selectedNodeId);
         }
     });
     editorForm.addEventListener('submit', handleFormSubmit);
@@ -108,6 +115,13 @@ export function renderEditorPanel(currentNodes, currentSelectedNodeId) {
             starNodeBtn.classList.add('starred');
         } else {
             starNodeBtn.classList.remove('starred');
+        }
+
+        // Update acute button state
+        if (node.acute) {
+            acuteNodeBtn.classList.add('acute');
+        } else {
+            acuteNodeBtn.classList.remove('acute');
         }
 
         for (const targetNodeId in node.links) {

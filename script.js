@@ -1,6 +1,7 @@
 import { initEditor, renderEditorPanel } from './editor.js';
 import { saveNodes, loadNodes } from './storage.js';
 import { config } from './config.js';
+import { trackCommitChange, renderHistoryPanel } from './history.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
@@ -14,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const gridBackground = document.getElementById('grid-background');
     const snackbar = document.getElementById('snackbar');
     const starredNodesTableBody = document.querySelector('#starred-nodes-table tbody');
+    const historyTableBody = document.querySelector('#history-table tbody');
 
     // State
     let nodes = [];
@@ -29,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderArrows();
             renderEditorPanel(nodes, selectedNodeId);
             renderStarredNodesPanel();
+            renderHistoryPanel(nodes.filter(n => n.acute));
         });
     }
 
@@ -59,6 +62,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="activation-value">${node.activation.toFixed(2)}</div>
                 ${node.starred ? `<div class="star-indicator"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div>` : ''}
             `;
+
+            if (node.acute) {
+                const commitValueEl = nodeEl.querySelector('.commit-value');
+                commitValueEl.style.color = config.visuals.acuteTaskColor;
+                commitValueEl.style.fontSize = '2.4375rem'; // 1.875rem * 1.3
+            }
             
             nodeEl.addEventListener('click', e => { e.stopPropagation(); handleNodeSelection(node.id); });
             nodeEl.addEventListener('mousedown', e => handleNodeMouseDown(e, node.id));
@@ -421,8 +430,10 @@ document.addEventListener('DOMContentLoaded', () => {
             onSave: (id, newName, newCommit) => {
                 const node = nodes.find(n => n.id === id);
                 if (node) {
+                    const oldCommit = node.commit;
                     node.name = newName;
                     node.commit = newCommit;
+                    trackCommitChange(id, oldCommit, newCommit);
                     saveNodes(nodes);
                     renderAll();
                 }
@@ -439,6 +450,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const node = nodes.find(n => n.id === id);
                 if (node) {
                     node.starred = !node.starred;
+                    saveNodes(nodes);
+                    renderAll();
+                }
+            },
+            onAcuteUpdate: (id) => {
+                const node = nodes.find(n => n.id === id);
+                if (node) {
+                    node.acute = !node.acute;
                     saveNodes(nodes);
                     renderAll();
                 }
@@ -494,6 +513,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (node.starred === undefined) {
                 node.starred = false;
+            }
+            if (node.acute === undefined) {
+                node.acute = false;
             }
         });
 

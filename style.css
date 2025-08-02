@@ -300,6 +300,10 @@ body {
 #star-node-btn.starred svg {
     fill: #facc15;
 }
+
+#acute-node-btn.acute {
+    color: #00ff00;
+}
 #editor-panel .editor-header button {
     background: none;
     border: none;

@@ -29,7 +29,8 @@ export const config = {
     // Visual and Theming Parameters
     visuals: {
         maxActivation: 800,    // The activation value that corresponds to the full highlight color
-        highlightRgb: '255, 0, 0' // The RGB value for the highlight color
+        highlightRgb: '255, 0, 0', // The RGB value for the highlight color
+        acuteTaskColor: '#00ff00' // The color for acute task commit values
     },
 
     debug: {
