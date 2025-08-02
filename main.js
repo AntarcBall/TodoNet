@@ -4,12 +4,14 @@ import { initUI, renderAll } from './ui.js';
 import { initBoard, getBoardState } from './board.js';
 import { initControls } from './controls.js';
 import { initEditor } from './editor.js';
+import { initAcutePanel } from './acute.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeState();
     initUI();
     initBoard();
     initControls();
+    initAcutePanel();
 
     initEditor({
         onClose: () => {

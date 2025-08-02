@@ -61,9 +61,14 @@ body {
     padding: 1rem;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     z-index: 25;
-    width: 250px;
+    width: 325px;
     max-height: 40vh;
-    overflow-y: auto;
+    overflow: hidden; /* Hide scrollbars */
+    cursor: grab; /* Indicate draggable content */
+}
+
+#acute-panel.grabbing {
+    cursor: grabbing;
 }
 
 #acute-panel h3 {
@@ -82,6 +87,45 @@ body {
     text-align: left;
     padding: 0.5rem;
     border-bottom: 1px solid var(--input-border-color);
+    position: relative; /* For tooltip positioning */
+}
+
+/* Style for the contribution cells */
+#acute-panel .contribution-cell {
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 3px;
+}
+
+/* Tooltip container */
+#acute-panel .tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+/* Tooltip text */
+#acute-panel .tooltip .tooltiptext {
+    visibility: hidden;
+    width: 160px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%; /* Position the tooltip above the cell */
+    left: 50%;
+    margin-left: -80px; /* Use half of the width to center the tooltip */
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+#acute-panel .tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
 }
 
 #acute-panel th {

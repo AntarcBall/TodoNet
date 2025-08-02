@@ -22,13 +22,44 @@ export function trackCommitChange(nodeId, oldCommit, newCommit) {
     localStorage.setItem(ACUTE_STORAGE_KEY, JSON.stringify(history));
 }
 
+export function initAcutePanel() {
+    const panel = document.getElementById('acute-panel');
+    if (!panel) return;
+
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    panel.addEventListener('mousedown', (e) => {
+        isDown = true;
+        panel.classList.add('grabbing');
+        startX = e.pageX - panel.offsetLeft;
+        scrollLeft = panel.scrollLeft;
+    });
+    panel.addEventListener('mouseleave', () => {
+        isDown = false;
+        panel.classList.remove('grabbing');
+    });
+    panel.addEventListener('mouseup', () => {
+        isDown = false;
+        panel.classList.remove('grabbing');
+    });
+    panel.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - panel.offsetLeft;
+        const walk = (x - startX) * 2; // The scroll speed
+        panel.scrollLeft = scrollLeft - walk;
+    });
+}
+
 export function renderAcutePanel(acuteNodes) {
     const acuteTable = document.getElementById('acute-table');
     if (!acuteTable) return;
     const acuteTableBody = acuteTable.querySelector('tbody');
     const acuteTableHeader = acuteTable.querySelector('thead tr');
 
-    acuteTableHeader.innerHTML = '<th>Name</th>';
+    acuteTableHeader.innerHTML = '<th style="min-width: 150px;">Name</th>'; // Set min-width for Name column
     acuteTableBody.innerHTML = '';
 
     const dates = [];
@@ -37,15 +68,15 @@ export function renderAcutePanel(acuteNodes) {
         date.setDate(date.getDate() - i);
         dates.push(date.toISOString().slice(0, 10));
     }
-    dates.reverse(); // Display oldest date first
+    // dates are now ordered from today to oldest
 
     dates.forEach((date, index) => {
         const th = document.createElement('th');
-        const d = new Date(date);
-        if (date === getTodayDateString()) {
-            th.textContent = 'Today';
+        if (index === 0) {
+            th.textContent = 'Td';
         } else {
-            th.textContent = `${d.getMonth() + 1}/${d.getDate()}`;
+            th.textContent = `D-${index}`;
+            th.style.fontSize = '0.6rem'; // Smaller font size
         }
         acuteTableHeader.appendChild(th);
     });
@@ -60,23 +91,30 @@ export function renderAcutePanel(acuteNodes) {
 
         dates.forEach(date => {
             const cell = document.createElement('td');
-            const commitChange = history[node.id] && history[node.id][date] ? history[node.id][date] : 0;
-            cell.textContent = commitChange > 0 ? `+${commitChange}` : '-';
-            cell.style.textAlign = 'center';
+            cell.className = 'contribution-cell'; // Add class for styling
 
+            const commitChange = history[node.id] && history[node.id][date] ? history[node.id][date] : 0;
+            
+            // Create tooltip structure
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            const tooltipText = document.createElement('span');
+            tooltipText.className = 'tooltiptext';
+            tooltipText.textContent = `${commitChange > 0 ? '+' : ''}${commitChange} contributions on ${date}`;
+            tooltip.appendChild(tooltipText);
+
+            // Set background color based on contribution
             if (commitChange > 20) {
-                cell.style.backgroundColor = '#216e39'; 
-                cell.style.color = 'white';
+                tooltip.style.backgroundColor = '#216e39'; 
             } else if (commitChange > 10) {
-                cell.style.backgroundColor = '#30a14e';
-                cell.style.color = 'white';
+                tooltip.style.backgroundColor = '#30a14e';
             } else if (commitChange > 0) {
-                cell.style.backgroundColor = '#40c463';
-                cell.style.color = 'white';
+                tooltip.style.backgroundColor = '#40c463';
             } else {
-                 cell.style.backgroundColor = '#ebedf0';
+                 tooltip.style.backgroundColor = '#ebedf0';
             }
 
+            cell.appendChild(tooltip);
             row.appendChild(cell);
         });
 
