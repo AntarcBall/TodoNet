@@ -50,6 +50,7 @@ function handleFormSubmit(e) {
     const id = document.getElementById('node-id-input').value;
     const name = document.getElementById('node-name-input').value;
     const commit = parseInt(document.getElementById('node-commit-input').value, 10) || 0;
+    console.log(`Editor Save: Node Name - "${name}", Commit - ${commit}`);
     onSaveCallback(id, name, commit);
 }
 

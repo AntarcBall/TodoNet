@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         onSave: (id, newName, newCommit) => {
             updateNodeContent(id, newName, newCommit);
             rerender();
+            renderAcutePanel(getNodes().filter(node => node.acute));
         },
         onColorUpdate: (id, newColor) => {
             updateNodeColor(id, newColor);
@@ -86,4 +87,10 @@ window.exportNodes = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     console.log('Node data exported successfully.');
+};
+
+window.clearCommitHistory = () => {
+    localStorage.removeItem('commitHistory');
+    console.log('Commit history cache has been cleared.');
+    rerender(); // Re-render the UI to reflect the cleared cache
 };

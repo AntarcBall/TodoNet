@@ -9,17 +9,23 @@ function getTodayDateString() {
 
 export function trackCommitChange(nodeId, oldCommit, newCommit) {
     const change = newCommit - oldCommit;
+    console.log(`trackCommitChange called for node ${nodeId}: old=${oldCommit}, new=${newCommit}, change=${change}`);
     if (change === 0) return;
 
-    const history = JSON.parse(localStorage.getItem(ACUTE_STORAGE_KEY)) || {};
-    if (!history[nodeId]) {
-        history[nodeId] = {};
+    try {
+        const history = JSON.parse(localStorage.getItem(ACUTE_STORAGE_KEY)) || {};
+        if (!history[nodeId]) {
+            history[nodeId] = {};
+        }
+
+        const today = getTodayDateString();
+        history[nodeId][today] = (history[nodeId][today] || 0) + change;
+
+        localStorage.setItem(ACUTE_STORAGE_KEY, JSON.stringify(history));
+        console.log('New history state saved to localStorage:', history);
+    } catch (error) {
+        console.error("Failed to track commit change in localStorage:", error);
     }
-
-    const today = getTodayDateString();
-    history[nodeId][today] = (history[nodeId][today] || 0) + change;
-
-    localStorage.setItem(ACUTE_STORAGE_KEY, JSON.stringify(history));
 }
 
 export function initAcutePanel() {
@@ -82,6 +88,8 @@ export function renderAcutePanel(acuteNodes) {
     });
 
     const history = JSON.parse(localStorage.getItem(ACUTE_STORAGE_KEY)) || {};
+    console.log('Rendering acute panel with nodes:', acuteNodes);
+    console.log('Using history data from localStorage:', history);
 
     acuteNodes.forEach(node => {
         const row = document.createElement('tr');
