@@ -112,14 +112,19 @@ export function renderAcutePanel(acuteNodes) {
             tooltip.appendChild(tooltipText);
 
             // Set background color based on contribution
+            console.log(`Node: ${node.name}, Date: ${date}, CommitChange: ${commitChange}`);
             if (commitChange > 20) {
-                tooltip.style.backgroundColor = '#216e39'; 
+                cell.style.backgroundColor = '#216e39'; 
+                console.log(`Setting background for ${node.name} to #216e39`);
             } else if (commitChange > 10) {
-                tooltip.style.backgroundColor = '#30a14e';
+                cell.style.backgroundColor = '#30a14e';
+                console.log(`Setting background for ${node.name} to #30a14e`);
             } else if (commitChange > 0) {
-                tooltip.style.backgroundColor = '#40c463';
+                cell.style.backgroundColor = '#40c463';
+                console.log(`Setting background for ${node.name} to #40c463`);
             } else {
-                 tooltip.style.backgroundColor = '#ebedf0';
+                 cell.style.backgroundColor = '#ebedf0';
+                 console.log(`Setting background for ${node.name} to #ebedf0`);
             }
 
             cell.appendChild(tooltip);
