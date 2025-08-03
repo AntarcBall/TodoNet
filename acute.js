@@ -59,6 +59,10 @@ export function initAcutePanel() {
     });
 }
 
+function sigmoid(x) {
+    return 1 / (1 + Math.exp(-x));
+}
+
 export function renderAcutePanel(acuteNodes) {
     const acuteTable = document.getElementById('acute-table');
     if (!acuteTable) return;
@@ -91,6 +95,9 @@ export function renderAcutePanel(acuteNodes) {
     console.log('Rendering acute panel with nodes:', acuteNodes);
     console.log('Using history data from localStorage:', history);
 
+    const greyColor = [235, 237, 240];
+    const greenColor = [0, 255, 0];
+
     acuteNodes.forEach(node => {
         const row = document.createElement('tr');
         const nameCell = document.createElement('td');
@@ -112,20 +119,13 @@ export function renderAcutePanel(acuteNodes) {
             tooltip.appendChild(tooltipText);
 
             // Set background color based on contribution
-            console.log(`Node: ${node.name}, Date: ${date}, CommitChange: ${commitChange}`);
-            if (commitChange > 20) {
-                cell.style.backgroundColor = '#216e39'; 
-                console.log(`Setting background for ${node.name} to #216e39`);
-            } else if (commitChange > 10) {
-                cell.style.backgroundColor = '#30a14e';
-                console.log(`Setting background for ${node.name} to #30a14e`);
-            } else if (commitChange > 0) {
-                cell.style.backgroundColor = '#40c463';
-                console.log(`Setting background for ${node.name} to #40c463`);
-            } else {
-                 cell.style.backgroundColor = '#ebedf0';
-                 console.log(`Setting background for ${node.name} to #ebedf0`);
-            }
+            const alpha = commitChange > 0 ? (sigmoid(commitChange / 10) - 0.5) * 2 : 0;
+
+            const r = (1 - alpha) * greyColor[0] + alpha * greenColor[0];
+            const g = (1 - alpha) * greyColor[1] + alpha * greenColor[1];
+            const b = (1 - alpha) * greyColor[2] + alpha * greenColor[2];
+
+            cell.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
 
             cell.appendChild(tooltip);
             row.appendChild(cell);

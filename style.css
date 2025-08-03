@@ -551,4 +551,5 @@ body {
 
 #node-commit-input {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
